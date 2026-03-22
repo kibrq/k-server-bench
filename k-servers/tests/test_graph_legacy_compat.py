@@ -12,12 +12,14 @@ from kserverclean.metrics.circle import Circle
 
 pytestmark = pytest.mark.legacy_compat
 
+ROOT = Path(__file__).resolve().parents[2]
+METRICS_DIR = ROOT / "metrics"
 
 LEGACY_PATHS = {
-    (3, 6): Path("/home/brillian/rl-k-servers/k-servers/potential-evaluation/metrics/circle_k3_m6.pickle"),
-    (3, 8): Path("/home/brillian/rl-k-servers/k-servers/potential-evaluation/metrics/circle_k3_m8.pkl"),
-    (4, 6): Path("/home/brillian/rl-k-servers/k-servers/potential-evaluation/metrics/circle_k4_m6.pickle"),
-    (4, 8): Path("/home/brillian/rl-k-servers/k-servers/potential-evaluation/metrics/circle_k4_m8.pickle"),
+    (3, 6): METRICS_DIR / "circle_k3_m6.pickle",
+    (3, 8): METRICS_DIR / "circle_k3_m8.pickle",
+    (4, 6): METRICS_DIR / "circle_k4_m6.pickle",
+    (4, 8): METRICS_DIR / "circle_k4_m8.pickle",
 }
 
 STORE_CASES = [

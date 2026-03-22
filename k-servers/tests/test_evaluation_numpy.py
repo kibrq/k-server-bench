@@ -53,12 +53,11 @@ def _unifying_hyperparams(k: int) -> tuple[int, list[list[int]], list[int]]:
     return n, index_matrix, coefs
 
 
-LEGACY_CIRCLE_K4_M6 = Path(
-    "/home/brillian/rl-k-servers/k-servers/potential-evaluation/metrics/circle_k4_m6.pickle"
-)
-LEGACY_CIRCLE_TAXI_K4_M6 = Path(
-    "/home/brillian/rl-k-servers/k-servers/potential-evaluation/metrics/circle_taxi_k4_m6.pickle"
-)
+ROOT = Path(__file__).resolve().parents[2]
+METRICS_DIR = ROOT / "metrics"
+
+LEGACY_CIRCLE_K4_M6 = METRICS_DIR / "circle_k4_m6.pickle"
+LEGACY_CIRCLE_TAXI_K4_M6 = METRICS_DIR / "circle_taxi_k4_m6.pickle"
 
 
 def test_numpy_instance_roundtrip_npz(tmp_path) -> None:

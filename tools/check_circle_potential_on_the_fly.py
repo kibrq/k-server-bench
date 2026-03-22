@@ -205,6 +205,7 @@ def main() -> None:
     parser.add_argument("--profile-timing", action="store_true", help="Print periodic BFS timing profile.")
     parser.add_argument("--timing-log-every", type=int, default=1000, help="Print timing stats every N iterations.")
     parser.add_argument("--profile-gc", action="store_true", help="Print periodic GC and tracked-object census stats.")
+    parser.add_argument("--disable-gc-during-run", action="store_true", help="Disable Python cyclic GC during BFS run (re-enabled at end).")
     parser.add_argument("--gc-log-every", type=int, default=1000, help="Print GC stats every N main-loop iterations.")
     parser.add_argument(
         "--gc-type-sample-every",
@@ -311,8 +312,8 @@ def main() -> None:
         ray_kwargs=ray_kwargs,
         return_wfs=False,
         return_paths=True,
+        disable_gc_during_run=args.disable_gc_during_run,
     )
-
     print(f"done: nodes={len(result['node_bookkeeper'])} edges={len(result['edge_bookkeeper'])}")
 
 
