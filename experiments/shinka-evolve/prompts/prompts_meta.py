@@ -1,0 +1,135 @@
+
+from .prompts_base import load_domain_knowledge
+
+DOMAIN_PROMPT = load_domain_knowledge()
+
+# Step 1: Individual Program Summaries
+META_STEP1_SYSTEM_MSG = (
+    "You are an expert mathematician assistant analyzing an individual program. "
+    "Create a standalone summary focusing on the mathematical properties of the program."
+
+    "Here is the domain knowledge:\n"
+    f"{DOMAIN_PROMPT}"
+)
+
+META_STEP1_USER_MSG = (
+    "# Program to Analyze\n"
+    "{individual_program_msg}\n\n"
+    "# Instructions\n\n"
+    "Create a standalone summary for this program using the following "
+    "exact format:\n\n"
+    "**Program Name: [Short summary name of the algorithm "
+    "(up to 10 words)]**\n"
+    "- **Mathematical Idea**: [Key mathematical idea (1-2 sentences)]\n"
+    "- **Performance**: [Score/metrics summary (1 sentence)]\n\n"
+    "Keep the program summary concise but informative. "
+    "Follow the format exactly."
+)
+
+# Step 2: Global Insights Scratchpad
+META_STEP2_SYSTEM_MSG = (
+    "You are an expert mathematician assistant analyzing specific program "
+    "evaluation results to extract actionable optimization insights. "
+    "Focus on concrete mathematical ideas from the actual "
+    "programs that were evaluated. "
+    "Here is the domain knowledge:\n"
+    f"{DOMAIN_PROMPT}"
+)
+
+META_STEP2_USER_MSG = (
+    "# Individual Program Summaries\n"
+    "{individual_summaries}\n\n"
+    "# Previous Global Insights (if any)\n"
+    "{previous_insights}\n\n"
+    "# Current Best Program\n"
+    "{best_program_info}\n\n"
+    "# Instructions\n\n"
+    "Analyze the SPECIFIC program evaluation results above to extract "
+    "concrete optimization insights. Look at the actual performance scores, "
+    "mathematical ideas, and evaluation feedback to identify patterns. "
+    "Reference specific programs and their results.\n"
+    "Make sure to incorporate the previous insights into the new insights.\n\n"
+    "Stay focused on mathematical structures and theoretical reasoning. "
+    "Try to compare programs, which difference impacted what metrics. Focus on outliers in metrics. "
+    "Exclude suggestions centered on caching, vectorization, or other time/memory micro-optimizations.\n\n"
+    "**CRITICAL: Pay special attention to the current best program and how it "
+    "compares to other evaluated programs. Ensure the best program's successful "
+    "patterns are prominently featured in your analysis.**\n\n"
+    "Update or create insights in these sections:\n\n"
+    "## Successful Algorithmic Patterns\n"
+    "- Identify specific implementation changes that led to score "
+    "improvements\n"
+    "- Reference which programs achieved these improvements and their "
+    "scores\n"
+    "- **Highlight patterns from the current best program**\n"
+    "- Note the specific techniques or approaches that worked "
+    "(2-4 bullet points)\n\n"
+    "## Ineffective Approaches\n"
+    "- Identify specific implementation changes that worsened "
+    "performance\n"
+    "- Reference which programs had these issues and how scores were "
+    "affected\n"
+    "- Note why these approaches failed based on evaluation feedback "
+    "(2-4 bullet points)\n\n"
+    "## Implementation Insights\n"
+    "- Extract specific coding patterns/techniques from the evaluated "
+    "programs\n"
+    "- **Analyze what makes the current best program effective**\n"
+    "- Connect implementation details to their performance impact\n"
+    "- Reference concrete examples from the program summaries "
+    "(2-4 bullet points)\n\n"
+    "## Performance Analysis\n"
+    "- Analyze actual score changes and trends from the evaluated "
+    "programs\n"
+    "- **Compare other programs' performance against the current best**\n"
+    "- Compare performance between different implementation "
+    "approaches\n"
+    "- Identify score patterns and correlations (2-4 bullet points)\n\n"
+    "CRITICAL: Base insights on the ACTUAL individual program summaries, "
+    "previous insights, and the current best program information. "
+    "Reference specific program names, scores, and implementation details. "
+    "Build upon previous insights with concrete evidence from the new evaluations. "
+    "IMPORTANT: Make sure that the best results are not ignored and are "
+    "prominently featured in your analysis."
+    "Do not make recommendations for the next steps. ONLY PERFORM THE "
+    "ANALYSIS."
+)
+
+# Step 3: Recommendations Generation
+META_STEP3_SYSTEM_MSG = (
+    "You are an expert programming assistant generating actionable "
+    "recommendations for future program mutations based on successful "
+    "patterns and insights."
+    "Here is the domain knowledge:\n"
+    f"{DOMAIN_PROMPT}"
+)
+
+META_STEP3_USER_MSG = (
+    "# Global Insights\n"
+    "{global_insights}\n\n"
+    "# Previous Recommendations (if any)\n"
+    "{previous_recommendations}\n\n"
+    "# Current Best Program\n"
+    "{best_program_info}\n\n"
+    "# Instructions\n\n"
+    "Based on the global insights above and the current best program, generate {max_recommendations} "
+    "actionable recommendations for future program mutations. Each "
+    "recommendation should be:\n\n"
+    "1. **Specific**: Clear about what to implement or try\n"
+    "2. **Actionable**: Something that can be directly applied\n"
+    "3. **Evidence-based**: Grounded in the successful patterns identified\n"
+    "4. **Diverse**: Cover different types of optimizations\n"
+    "5. **Best-program informed**: Consider what makes the current best program successful\n\n"
+    "Format as a numbered list:\n\n"
+    "1. [Specific recommendation based on successful patterns]\n"
+    "2. [Another recommendation focusing on different aspect]\n"
+    "...\n\n"
+    "**CRITICAL: Prioritize recommendations that build upon or extend the successful "
+    "patterns from the current best program. Consider both incremental improvements "
+    "to the best program's approach and novel variations that could surpass it.**\n\n"
+    "Focus on the most promising approaches that have shown success in "
+    "recent evaluations, especially those demonstrated by the best program. "
+    "Avoid generic advice - provide 2-3 sentences per recommendation. "
+    "DO NOT RECOMMEND CHANGING THE EVALUATION CODE. ONLY "
+    "MAKE ALGORITHMIC RECOMMENDATIONS."
+)
