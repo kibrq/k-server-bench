@@ -1,0 +1,7 @@
+{
+  "model": "hosted_vllm/openai/gpt-oss-120b",
+  "url": "http://localhost:8000/v1",
+  "api_key": "EMPTY",
+  "temperature": 0.8,
+  "max_tokens": 16000
+}
