@@ -19,13 +19,28 @@ fi
 TARGET_DIR="$(mkdir -p "$1" && cd "$1" && pwd)"
 shift
 CODEX_HOME_DIR="${TARGET_DIR}/.codex"
+ADD_EVALUATE_MCP_ARGS=("$@")
+HAS_EVALUATOR_HOME=false
+
+for ((i = 0; i < ${#ADD_EVALUATE_MCP_ARGS[@]}; i++)); do
+  case "${ADD_EVALUATE_MCP_ARGS[$i]}" in
+    --evaluator-home|--evaluator-home=*)
+      HAS_EVALUATOR_HOME=true
+      break
+      ;;
+  esac
+done
+
+if [[ "${K_SERVER_BENCH_USE_LEGACY_EVALUATOR:-false}" == "true" && "${HAS_EVALUATOR_HOME}" != "true" ]]; then
+  ADD_EVALUATE_MCP_ARGS+=("--evaluator-home" "tools/legacy-evaluator")
+fi
 
 python "${SCRIPT_DIR}/add-evaluate-mcp.py" \
   --k-server-bench-home "${BENCH_ROOT}" \
   --codex-home "${CODEX_HOME_DIR}" \
   --create-config \
   --override-mcp-config \
-  "$@"
+  "${ADD_EVALUATE_MCP_ARGS[@]}"
 
 cat <<EOF
 Codex MCP setup complete.

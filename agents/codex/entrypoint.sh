@@ -28,11 +28,7 @@ else
   echo "Warning: Codex auth file not found at ${CODEX_AUTH_MOUNT_PATH}; continuing without mounted auth." >&2
 fi
 
-if [[ "${K_SERVER_BENCH_USE_LEGACY_EVALUATOR:-false}" == "true" ]]; then
-  run_as_kserver micromamba run -n "${K_SERVER_ENV_NAME}" "${SETUP_SCRIPT}" codex "${TARGET_DIR}" --evaluator-home tools/legacy-evaluator
-else
-  run_as_kserver micromamba run -n "${K_SERVER_ENV_NAME}" "${SETUP_SCRIPT}" codex "${TARGET_DIR}"
-fi
+run_as_kserver micromamba run -n "${K_SERVER_ENV_NAME}" "${SETUP_SCRIPT}" codex "${TARGET_DIR}"
 
 if [[ $# -eq 0 ]]; then
   exec runuser -u "${RUN_AS_USER}" -- micromamba run -n "${K_SERVER_ENV_NAME}" bash

@@ -158,7 +158,9 @@ class Potential:
 
     # Core potential evaluation. Must be fast.
     # This is called for all nodes in the instances (hundreds of thousands).
-    def __call__(self, wf: np.ndarray):
+    # wf might be a tuple, so start your implentation with np.asarray(wf)
+    # Can return additional meta information
+    def __call__(self, wf: Union[tuple, np.ndarray]) -> Union[Tuple[float, Dict[str, Any]], float]:
         pass
 ```
 
@@ -232,8 +234,10 @@ class SearchEvaluator:
         # Instances used during search
         instance: List[Instance],
 
-        # Potential class name selected by PotentialFamily
-        potential_cls: str,
+        # Potential class selected by PotentialFamily
+        # It is not a string, but a cls object --
+        # potential_cls(context, **kwargs) would create a potential object
+        potential_cls: cls,
 
         # Potential hyperparameters selected by PotentialFamily
         potential_kwargs: Dict[str, Any],

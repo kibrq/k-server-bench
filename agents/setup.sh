@@ -58,13 +58,24 @@ esac
 TARGET_DIR="$(mkdir -p "${TARGET_DIR_INPUT}" && cd "${TARGET_DIR_INPUT}" && pwd)"
 DOCS_DIR="${TARGET_DIR}/docs"
 AGENT_SETUP="${SCRIPT_DIR}/${AGENT_NAME}/setup.sh"
+AGENT_INSTRUCTIONS="${SCRIPT_DIR}/${AGENT_NAME}/AGENTS.md"
+K_SERVER_BENCH_USE_LEGACY_EVALUATOR="${K_SERVER_BENCH_USE_LEGACY_EVALUATOR:-false}"
+EVALUATOR_DOCS_DIR="${SCRIPT_DIR}/docs/evaluator"
+if [[ "${K_SERVER_BENCH_USE_LEGACY_EVALUATOR}" == "true" ]]; then
+  EVALUATOR_DOCS_DIR="${SCRIPT_DIR}/docs/legacy-evaluator"
+fi
 
 if [[ ! -x "${AGENT_SETUP}" ]]; then
   chmod +x "${AGENT_SETUP}"
 fi
 
 mkdir -p "${DOCS_DIR}"
-cp -a "${SCRIPT_DIR}/docs/." "${DOCS_DIR}/"
+cp "${SCRIPT_DIR}/docs/QUICKSTART.md" "${DOCS_DIR}/"
+cp -a "${EVALUATOR_DOCS_DIR}/." "${DOCS_DIR}/"
+
+if [[ -f "${AGENT_INSTRUCTIONS}" ]]; then
+  cp "${AGENT_INSTRUCTIONS}" "${TARGET_DIR}/AGENTS.md"
+fi
 
 download_arxiv_source "coester_21" "2102.10474" "${DOCS_DIR}"
 download_arxiv_source "huang_22" "2205.08103" "${DOCS_DIR}"
