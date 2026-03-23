@@ -21,5 +21,6 @@ Minimal call:
 evaluate_directory(
   directory="solutions/010_softmax_gap",
   program_filename="main.py",
+  metrics_names="circle_k3_m6.pickle",
 )
 ```

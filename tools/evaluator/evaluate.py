@@ -70,6 +70,15 @@ def load_program(program_path: str | os.PathLike[str], module_name: str = "user_
     return module
 
 
+def resolve_qualname(root: Any, qualname: str) -> Any:
+    current = root
+    for part in qualname.split("."):
+        if not hasattr(current, part):
+            raise AttributeError(f"Could not resolve '{qualname}': missing attribute '{part}'")
+        current = getattr(current, part)
+    return current
+
+
 def _env_default(name: str, default: Any) -> Any:
     return os.getenv(f"K_SERVER_EVALUATE_{name}", default)
 
@@ -92,10 +101,10 @@ def parse_args() -> argparse.Namespace:
         help="Path to the candidate program.",
     )
     parser.add_argument(
-        "--potential_path",
-        type=Path,
-        default=None,
-        help="Optional path to the module that defines Potential. Defaults to --program_path.",
+        "--potential_qualname",
+        type=str,
+        default=_env_default("POTENTIAL_QUALNAME", "Potential"),
+        help="Qualified name of the Potential class within --program_path.",
     )
     parser.add_argument(
         "--potential_kwargs_json",
@@ -199,6 +208,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         default=str(_env_default("ROBUSTNESS_CHECK", "false")).lower() in {"1", "true", "yes", "on"},
         help="Run robustness checks in compute_potential_stats.",
+    )
+    parser.add_argument(
+        "--raise_on_missing_candidate_output",
+        action="store_true",
+        default=str(_env_default("RAISE_ON_MISSING_CANDIDATE_OUTPUT", "false")).lower() in {"1", "true", "yes", "on"},
+        help="Raise if the candidate subprocess does not create its output JSON file. By default this falls back to empty potential kwargs.",
     )
     return parser.parse_args()
 
@@ -315,6 +330,7 @@ def run_candidate_subprocess(
     kill_after: float,
     memory_limit_gb: float,
     cpu_limit_seconds: float,
+    raise_on_missing_candidate_output: bool,
 ) -> dict[str, Any]:
     cmd = [
         *exec_cmd,
@@ -332,13 +348,20 @@ def run_candidate_subprocess(
 
     stdout_path = results_dir / "subprocess.stdout"
     stderr_path = results_dir / "subprocess.stderr"
+    child_env = os.environ.copy()
+    pythonpath_entries = [str(program_path.parent)]
+    existing_pythonpath = child_env.get("PYTHONPATH")
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    child_env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
+
     with stdout_path.open("w", encoding="utf-8") as stdout_file, stderr_path.open(
         "w", encoding="utf-8"
     ) as stderr_file:
         proc = subprocess.Popen(
             cmd,
             cwd=str(program_path.parent),
-            env=os.environ.copy(),
+            env=child_env,
             stdout=stdout_file,
             stderr=stderr_file,
             text=True,
@@ -389,7 +412,13 @@ def run_candidate_subprocess(
             f"{proc.returncode}.\nstdout tail:\n{payload['stdout_tail']}\n\nstderr tail:\n{payload['stderr_tail']}",
         )
     if not output_path.is_file():
-        raise EvaluationError("Candidate subprocess did not create its output JSON file")
+        if raise_on_missing_candidate_output:
+            raise EvaluationError("Candidate subprocess did not create its output JSON file")
+        logger.info("Candidate subprocess did not create an output JSON file; falling back to empty potential kwargs.")
+        candidate_output = {"potential_kwargs": {}}
+        write_json(results_dir / "candidate_output.json", candidate_output)
+        candidate_output["_subprocess"] = payload
+        return candidate_output
 
     try:
         candidate_output = json.loads(output_path.read_text(encoding="utf-8"))
@@ -428,16 +457,19 @@ def extract_potential_kwargs(candidate_output: dict[str, Any]) -> dict[str, Any]
 def evaluate_potential(
     *,
     module: Any,
+    potential_qualname: str,
     metric_paths: list[Path],
     potential_kwargs: dict[str, Any],
     final_evaluation_kwargs: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    if not hasattr(module, "Potential"):
-        raise EvaluationError("Program does not define a Potential class")
-
-    potential_cls = getattr(module, "Potential")
+    try:
+        potential_cls = resolve_qualname(module, potential_qualname)
+    except AttributeError as exc:
+        raise EvaluationError(
+            f"Potential program does not define potential qualname '{potential_qualname}'"
+        ) from exc
     if not callable(potential_cls):
-        raise EvaluationError("Potential is not callable")
+        raise EvaluationError(f"{potential_qualname} is not callable")
 
     instance_results: list[dict[str, Any]] = []
     instance_scores: list[float] = []
@@ -581,11 +613,6 @@ def aggregate_metrics_old_style(
 def main(args: argparse.Namespace) -> tuple[dict[str, Any], bool, str | None]:
     logger.info("Evaluation args: %s", args)
     program_path = Path(args.program_path).expanduser().resolve()
-    potential_path = (
-        Path(args.potential_path).expanduser().resolve()
-        if args.potential_path is not None
-        else program_path
-    )
     results_dir = Path(args.results_dir).expanduser().resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
     metric_paths = resolve_metric_paths(args)
@@ -602,12 +629,14 @@ def main(args: argparse.Namespace) -> tuple[dict[str, Any], bool, str | None]:
 
     if not program_path.is_file():
         raise FileNotFoundError(f"Program file not found: {program_path}")
-    if not potential_path.is_file():
-        raise FileNotFoundError(f"Potential file not found: {potential_path}")
 
-    module = load_program(potential_path, module_name=f"user_program_{int(time.time() * 1e6)}")
-    if not hasattr(module, "Potential"):
-        raise EvaluationError("Potential program does not define Potential")
+    module = load_program(program_path, module_name=f"user_program_{int(time.time() * 1e6)}")
+    try:
+        resolve_qualname(module, args.potential_qualname)
+    except AttributeError as exc:
+        raise EvaluationError(
+            f"Potential program does not define potential qualname '{args.potential_qualname}'"
+        ) from exc
 
     if args.potential_kwargs_json is not None:
         candidate_output = {"potential_kwargs": _load_json_value_or_file(args.potential_kwargs_json)}
@@ -625,11 +654,13 @@ def main(args: argparse.Namespace) -> tuple[dict[str, Any], bool, str | None]:
                 kill_after=args.kill_after,
                 memory_limit_gb=args.memory_limit_gb,
                 cpu_limit_seconds=cpu_limit_seconds,
+                raise_on_missing_candidate_output=args.raise_on_missing_candidate_output,
             )
 
     potential_kwargs = extract_potential_kwargs(candidate_output)
     instance_results = evaluate_potential(
         module=module,
+        potential_qualname=args.potential_qualname,
         metric_paths=metric_paths,
         potential_kwargs=potential_kwargs,
         final_evaluation_kwargs=final_evaluation_kwargs,
@@ -637,7 +668,7 @@ def main(args: argparse.Namespace) -> tuple[dict[str, Any], bool, str | None]:
     metrics = aggregate_metrics_old_style(
         instance_results=instance_results,
         potential_kwargs=potential_kwargs,
-        potential_cls="Potential",
+        potential_cls=args.potential_qualname,
     )
     return metrics, True, None
 
