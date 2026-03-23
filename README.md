@@ -11,11 +11,10 @@ Top-level workspace for k-server benchmarking and evaluation.
 
 ## Usage
 
-Install the library first:
+Install the bench dependencies first:
 
 ```bash
-cd k-servers
-pip install -e .
+pip install -r requirements.txt
 ```
 
 Then run the top-level scripts from this repository root, for example:
@@ -40,3 +39,14 @@ cd experiments/best-of-n
 ```
 
 Each sweep regenerates its local prompt and initial files from the shared task components under `tasks/` before launching.
+
+## Codex
+
+An in-Docker Codex runner is available under `codex/`. It seeds a writable `k-server-bench` workspace inside the container and registers the released evaluator MCP by default:
+
+```bash
+cd codex
+./run_codex.sh /abs/path/to/TASK.md
+```
+
+See `codex/README.md` for runtime flags, Ray wiring, and output layout.

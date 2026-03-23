@@ -1,0 +1,7 @@
+-e ./k-servers
+click==8.2.1
+mcp
+pydantic
+ray==2.49.2
+tomli
+tomli_w

@@ -7,3 +7,4 @@
 - add codex setup with MCPs, docker and non-docker
 - add `docs/` and `README`
 - add `LICENSE`, `AGENTS.md`, `CONTRIBUTING.md`
+- polish docs in agents/docs/
