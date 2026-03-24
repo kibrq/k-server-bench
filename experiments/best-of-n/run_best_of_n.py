@@ -141,16 +141,16 @@ def _find_eval_script(explicit_path: str | None) -> Path | None:
     repo_root = script_dir.parent.parent
 
     candidates = [
-        repo_root / "tools/evaluator/evaluate.py",
         repo_root / "tools/legacy-evaluator/evaluate.py",
+        repo_root / "tools/evaluator/evaluate.py",
         repo_root / "k-servers/potential-evaluation/evaluate.py",
         repo_root.parent / "k-servers/potential-evaluation/evaluate.py",
-        Path("tools/evaluator/evaluate.py"),
         Path("tools/legacy-evaluator/evaluate.py"),
+        Path("tools/evaluator/evaluate.py"),
         Path("../k-servers/potential-evaluation/evaluate.py"),
         Path("k-servers/potential-evaluation/evaluate.py"),
-        Path.cwd() / "tools/evaluator/evaluate.py",
         Path.cwd() / "tools/legacy-evaluator/evaluate.py",
+        Path.cwd() / "tools/evaluator/evaluate.py",
         Path.cwd() / "../k-servers/potential-evaluation/evaluate.py",
         Path.cwd() / "k-servers/potential-evaluation/evaluate.py",
     ]
@@ -266,7 +266,6 @@ async def _evaluate_program(
     results_dir = output_dir / "eval_results"
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    kserver_home = os.getenv("K_SERVER_EVALUATE_HOME", str(eval_script.parent))
     subprocess_timeout = float(os.getenv("BEST_OF_N_EVAL_SUBPROCESS_TIMEOUT", "900"))
 
     cmd = [
@@ -276,8 +275,6 @@ async def _evaluate_program(
         str(program_file),
         "--results_dir",
         str(results_dir),
-        "--home",
-        str(kserver_home),
     ]
 
     proc = await asyncio.create_subprocess_exec(
@@ -365,7 +362,7 @@ def _build_initial_prompt(task_text: str, initial_code: str) -> str:
         "```python\n"
         f"{initial_code.rstrip()}\n"
         "```\n\n"
-        "Return an improved full Python file implementing class Potential. "
+        "Return an improved full Python file satisfying the task contract. "
         "Respond with code only."
     )
 
@@ -379,7 +376,7 @@ def _build_retry_feedback(eval_result: EvalResult, attempt_idx: int, max_attempt
         f"Metrics: {json.dumps(eval_result.metrics, ensure_ascii=False)[:METRICS_FEEDBACK_CHARS]}\n"
         f"Correct payload: {json.dumps(eval_result.correct, ensure_ascii=False)[:CORRECT_FEEDBACK_CHARS]}\n"
         f"Stderr tail: {eval_result.stderr_tail[-STDERR_FEEDBACK_CHARS:]}\n\n"
-        "Please provide a corrected full Python file implementing class Potential. "
+        "Please provide a corrected full Python file satisfying the task contract. "
         "Respond with code only."
     )
 

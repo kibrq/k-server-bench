@@ -1,0 +1,55 @@
+workspace_path: "./output-kserver-potential"
+
+llm_config:
+  model: "openai/openai/gpt-oss-120b"
+  url: "http://localhost:8000/v1"
+  api_key: "EMPTY"
+  max_tokens: 60000
+
+planners:
+  evolve_planner:
+    react_max_steps: 8
+
+executors:
+  evolve_executor_fuse:
+    max_rounds: 4
+    react_max_steps: 4
+    score_threshold: 0.2
+
+summarizers:
+  evolve_summary:
+    react_max_steps: 4
+
+evolve:
+  task: |
+    Improve the Python solution for k-server potential evaluation.
+
+    The evaluator may consume one or more of:
+      - PotentialFamily
+      - SearchEvaluator
+      - Potential
+
+    Constraints:
+    - Keep output deterministic and fast.
+    - Do not rely on external files not available at evaluation time.
+
+    Objective:
+    - Maximize evaluator score.
+
+  planner_name: "evolve_planner"
+  executor_name: "evolve_executor_fuse"
+  summary_name: "evolve_summary"
+
+  max_iterations: 50
+  target_score: 1.0
+  concurrency: 1
+
+  evaluator:
+    timeout: 1200
+
+  database:
+    storage_type: "in_memory"
+    num_islands: 3
+    population_size: 40
+    checkpoint_interval: 5
+    sampling_weight_power: 2

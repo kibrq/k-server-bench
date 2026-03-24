@@ -1,0 +1,320 @@
+# k-Server Problem
+
+You are proposing a *potential* for the k-server problem. Recall that a state in the k-server problem can be described by its current work function: a function mapping every configuration (a multiset of k points) to a real number representing the minimum cost required to serve all previous requests and end in that configuration.
+Your goal is to propose a potential: a function that maps each work function to a real value.
+
+## Scoring
+
+Your potential will be evaluated based on the number of violations it incurs. Given a work function ( w ), you can compute the updated work function after serving request ( r ), denoted ( w' ). The potential must satisfy:
+
+[
+\Phi(w') - \Phi(w) >= \max_X \big( w'(X) - w(X) \big)
+]
+
+or normalized version:
+
+[
+\Phi(w'_norm) - \Phi(w_norm) + (k + 1) (\min_X w'(X) - \min_X w(X)) >= \max_X \big( w'(X) - w(X) \big)
+]
+
+Your score, which you want to minimize, is called `violations_k`. Ideally, this number should be 0 (equivalently, `violations_k_score` should be 1).
+
+Metrics also include `processed_normalized_edges_score` (from 0 to 1) which is the score of how many violations were actually processed. This depends on the computation speed of your proposed potential. Usually this will be 1. If `processed_normalized_edges_score` is low, the `violations_k_score` might be less accurate.
+
+# Evaluation Guide
+
+`evaluate.py` expects a Python file that:
+
+- defines a `Potential` class with the predefined interface below
+- defines `main(args) -> Dict[str, Any]`, which searches for good hyperparameters for that `Potential`
+
+For the task itself, you should focus on the logic inside `Potential` and `main(args)`.
+The surrounding CLI / script boilerplate is not the important part of the task.
+
+In practice:
+
+- `Potential` defines the actual potential used in final evaluation
+- `main(args)` defines how you search for good `potential_kwargs`
+
+## Required interfaces
+
+### Potential
+
+```py
+# Metric points are integers and have pairwise distances.
+# WFContext provides all distance/work-function helpers.
+class WFContext:
+    # Number of servers
+    k: int
+
+    # Number of metric points
+    m: int
+
+    # Distance between two points
+    def distance(i, j):
+        pass
+
+    # Map a configuration (length `k`) to its canonical configuration index.
+    def config_to_idx(config: Sequence[int]):
+        pass
+
+    # Inverse mapping from index to canonical configuration
+    idx_to_config: List[int]
+
+    # Sum of pairwise distances within a configuration index
+    def distance_within_config(idx: int):
+        pass
+
+    # Pairwise-distance sum for explicit point indices
+    def distance_within_clique(S):
+        pass
+
+    # Distance between two configuration indices
+    def distance_between_configs(idx1: int, idx2: int):
+        pass
+
+    # Distance between two explicit sets
+    def distance_between_sets(S: Sequence[int], T: Sequence[int]):
+        pass
+
+    # Initial work function for a configuration
+    def initial_wf(servers: Sequence[int]) -> np.ndarray:
+        pass
+
+    # Updated work function after request
+    def update_wf(wf: np.ndarray, request: int) -> np.ndarray:
+        pass
+
+
+"""
+Important:
+
+* `wf` is indexed by configuration index, not raw point labels.
+* Always use `config_to_idx(...)` or `idx_to_config[...]` for indexing.
+* Never assume a manual index formula.
+"""
+
+
+class Potential:
+    # Optional precomputation belongs here.
+    def __init__(self, context: WFContext, **kwargs):
+        pass
+
+    # Core potential evaluation. Must be fast.
+    # This is called for all nodes in the instances.
+    # `wf` might be a tuple, so start with np.asarray(wf).
+    # You may return either:
+    #   float
+    # or
+    #   (float, Dict[str, Any])
+    def __call__(self, wf: Union[tuple, np.ndarray]) -> Union[Tuple[float, Dict[str, Any]], float]:
+        pass
+```
+
+### main
+
+```py
+def main(args: Namespace) -> Dict[str, Any]:
+    ...
+```
+
+This method should search for the best found hyperparameters for the predefined `Potential` skeleton within the given resources such as timeout and CPU budget.
+
+In practice, the most useful return shape is:
+
+```py
+{
+    "potential_kwargs": {...}
+}
+```
+
+The evaluator also accepts:
+
+```py
+{"kwargs": {...}}
+```
+
+or, if neither key is present, it treats all top-level keys not starting with `_` as the candidate kwargs.
+
+Keep the return value JSON-serializable. VERY IMPORTANT.
+
+## What `args` means
+
+Inside `main(args)` you should assume:
+
+- `args.metrics` is a list of metric paths
+- each metric should typically be loaded with `KServerInstance.load(metric_path)`
+- `args.timeout` is the maximum time budget for your search logic
+- `args.n_cpus` is the maximum number of CPUs you are allowed to use
+
+Important:
+
+- `args.timeout` is not just a safety limit; it is the search budget you should plan around.
+- `args.n_cpus` should normally influence your algorithm design. Ignoring it is usually a bad choice.
+- Do not replace the provided budget with a tiny fixed internal cap such as 10-20 seconds unless you have a very strong reason.
+- Treat under-using `args.timeout` and ignoring `args.n_cpus` as failure modes of the search procedure.
+- In particular, avoid patterns like `deadline = now + 10`, `deadline = now + 20`, `attempts <= 50`, or any other small fixed cap that does not scale with `args.timeout`.
+- If you choose to use much less than the full wall-clock budget, explain the reason in `_search_summary`.
+- `main(args)` should gracefully handle `KeyboardInterrupt` near the timeout boundary: preserve the best candidate found so far and still return a valid JSON-serializable result instead of failing.
+
+You do not need to worry about the outer CLI plumbing. Focus on implementing a strong search procedure in `main(args)` and a strong `Potential` class.
+
+## Instance data
+
+Each metric instance after KServerInstance.load provides:
+
+- `get_nodes()` -> nodes with normalized work functions
+- `get_edges()` -> transitions with edge data such as `from`, `to`, `d_min`, `ext`
+- `get_context()` -> `WFContext`
+
+The edge condition for competitive ratio `c` is
+
+```python
+Phi(v) - Phi(u) + (c + 1) * d_min < ext
+```
+
+If you implement a proxy search inside `main(args)`, this is the core condition you usually want to estimate.
+
+## Proxy-search hint
+
+Prefer using smaller full instances over random edge subsampling.
+
+- Do not rely on random edge subsampling as your main approximation strategy unless there is a very strong reason.
+- Lower-index instances are often mathematically meaningful subsets of the harder ones, not just random smaller samples.
+- In particular, `circle_k4_m6` is literally a subset of `circle_taxi_k4_m6`, while having far fewer nodes and edges.
+- This makes smaller instances a much better proxy for search than evaluating a random subset of edges from a much larger instance.
+- A good strategy is to screen candidates on smaller complete instances first, then spend more budget validating only the strongest candidates on harder instances.
+
+## Resource-usage hint
+
+Use the allocated search budget aggressively.
+
+- Try to consume most of the available wall-clock budget in `main(args)`, while reserving a small tail for cleanup and JSON output.
+- If your proxy evaluation can be parallelized across candidates, edges or across instances, you should usually use multiple worker processes up to `args.n_cpus`.
+- Do not merely accept `args.n_cpus` in the CLI. Actually use it to choose worker count, batch width, or parallel evaluation strategy.
+- A good default is to reserve only a small cleanup tail, for example about 5-15% of `args.timeout`, and spend the remaining 85-95% on actual search.
+- A good default is to set the amount of parallel work as an explicit function of `args.n_cpus`, rather than hard-coding a constant worker count.
+- Reserve a small tail for interruption handling and final serialization so that a `KeyboardInterrupt` or `SIGTERM` near the deadline still produces a valid result payload.
+- Prefer staged search over premature early exit:
+  1. broad screening with cheap but meaningful full-instance proxies
+  2. re-ranking of promising candidates on harder instances
+  3. final refinement / validation on the strongest few candidates
+- Avoid returning after only a handful of attempts unless each attempt is genuinely expensive.
+- Prefer adaptive budgeting: estimate candidate cost online, then decide how many candidates, instances, and refinement steps can still fit in the remaining time.
+- Track resource use in `_search_summary`, for example attempted candidates, time spent, and how much of the budget was consumed.
+
+Budget-use checklist for `main(args)`:
+
+- derive `deadline` from `args.timeout`, not from a tiny constant
+- derive worker count or batch width from `args.n_cpus`
+- spend most of the budget on search, not idle waiting or early exit
+- report attempts, elapsed time, budget fraction used, and parallelism choices in `_search_summary`
+- prefer a search that scales up when `args.timeout` or `args.n_cpus` increases
+- on `KeyboardInterrupt`, return the best candidate found so far rather than a failure payload
+
+## Final evaluation
+
+The hyperparameters proposed by `main(args)` are then evaluated on the full instances with additional robustness checks.
+
+Your main objective is to make `violations_k` as low as possible on all instances. `combined_score` is the score version of this metric. The perfect score is `1.0`, which corresponds to multiplying all per-instance scores together.
+
+## Canonical Potential
+
+The canonical potential has the form:
+
+\[
+\min_{a_1, \ldots, a_n}
+\sum_{r} wf[a_{\text{index\_matrix}[r,1]}, \ldots, a_{\text{index\_matrix}[r,k]}]
+- \sum_{i<j} \text{coef}_{i,j} \, d(i,j)
+\]
+
+If `index_matrix[r, c] < 0`, the implementation uses the antipode of `a_{abs(index_matrix[r, c])}`.
+
+The canonical `Potential` requires these keys:
+
+- `n`: number of abstract points `a_1, ..., a_n`
+- `index_matrix`: tuple/list of rows, where every row has length exactly `k`
+- `coefs`: tuple/list of pairwise coefficients of length `n * (n - 1) // 2`, or `None` (all zeros)
+
+If these keys are missing or malformed, construction will fail.
+
+The implementation does not enforce stronger mathematical canonicalization for you. In particular, you should still treat these as your responsibility:
+
+- sorting entries inside each row when you want equivalent rows to collapse
+- sorting rows lexicographically when you want equivalent matrices to collapse
+- avoiding duplicate exploration of the same `index_matrix`
+- keeping `n` small enough (avoid using n > 8) for the search to remain computationally feasible
+
+## Row Count Guidance
+
+For the k-server inequality, using fewer than `k + 1` rows is mathematically invalid if your goal is to achieve `violations_k = 0`. Such a potential should not be expected to score zero violations.
+
+Using exactly `k + 1` rows is the necessary regime to target `violations_k = 0`.
+
+Using more than `k + 1` rows is not expected to achieve `violations_k = 0` either, but it can still reduce `violations_k`. In practice, allowing extra rows can help you identify which rows are useless or redundant before shrinking back to a tighter structure.
+
+So the practical guidance is:
+
+- if you want a plausible zero-violation candidate, keep the number of rows exactly `k + 1`
+- if you want to explore or diagnose structure, it can still make sense to test more than `k + 1` rows
+
+## Semantics Of `index_matrix`
+
+Each row of `index_matrix` describes one term of the work-function sum.
+
+- positive entry `r > 0` means use point `a_r`
+- negative entry `r < 0` means use the antipode of `a_{abs(r)}`
+- entries are 1-based with respect to `a_1, ..., a_n`
+
+This means every absolute index appearing in `index_matrix` must be between `1` and `n`. The implementation expects that; it does not add its own bounds-checking layer around malformed indices.
+
+Good ways to use it:
+
+- search over `n`
+- search over `coefs`
+- search over `index_matrix`
+- canonicalize candidate structures before submitting them
+
+Avoid assumptions that are not guaranteed by the implementation, such as:
+
+- automatic deduplication of equivalent `index_matrix` values
+- automatic clipping or validation of out-of-range row indices
+- cheap scaling to very large `n`
+
+Usually `coefs` that work best are small integers from -5 to 5.
+
+Restrict the hypothesis class to index matrices satisfying the following properties:
+
+- One row is all `-1`: `[-1, ..., -1]`.
+- Every other row contains `1`.
+- All other indices are balanced: each appears equally often with positive and negative sign.
+- Use `n = k + 1` and exactly `k + 1` rows.
+
+## Metrics Hint: k4 General Task
+
+In this regime, you are given exactly four benchmark instance files:
+
+- `circle_k4_m6.pickle`
+- `circle_k4_m8.pickle`
+- `circle_taxi_k4_m6.pickle`
+- `circle_taxi_k4_m8.pickle`
+
+Treat these as:
+
+- circle and circle-taxi metrics
+- `k = 4`
+- `m = 6` and `m = 8`
+- `circle_k4_m6.pickle`: `1001` nodes and `6006` inequalities
+- `circle_k4_m8.pickle`: `32650` nodes and `261200` inequalities
+- `circle_taxi_k4_m6.pickle`: `166681` nodes and `7000602` inequalities
+- `circle_taxi_k4_m8.pickle`: `49387` nodes and `159139` inequalities
+
+This is a multi-instance general-task setting.
+
+Practical implication for the agent:
+
+- the solution should be robust across all instances
+- `circle_k4_m6.pickle` is an exact subset of `circle_taxi_k4_m6.pickle`
+- it is a good idea to first iterate on the smaller `circle_k4_m6.pickle` instance before testing on the larger taxi variant
+- `circle_taxi_k4_m6.pickle` is especially large, so evaluation cost matters
+- evaluating in one thread on `circle_taxi_k4_m6.pickle` may take over a minute
