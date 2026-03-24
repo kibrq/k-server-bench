@@ -1,7 +1,7 @@
 import numpy as np
 
-from kserverclean.metrics.circle import Circle
-from kserverclean.metrics.utils import antipode_extension
+from kserver.metrics.circle import Circle
+from kserver.metrics.utils import antipode_extension
 
 
 def test_antipode_extension_block_structure() -> None:

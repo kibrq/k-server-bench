@@ -10,7 +10,7 @@ from typing import Dict, Any
 
 import numpy as np
 
-from kserver.potential import KServerInstance
+from kserver.evaluation import NumpyKServerInstance
 
 
 
@@ -26,7 +26,7 @@ class Potential:
 
 
 def main(args) -> Dict[str, Any]:
-    instances = [KServerInstance.load(path) for path in args.metrics]
+    instances = [NumpyKServerInstance.load(path) for path in args.metrics]
     if not instances:
         raise ValueError("No metrics were provided")
         

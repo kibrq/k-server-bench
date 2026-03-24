@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from kserverclean.metrics.circle import Circle
+from kserver.metrics.circle import Circle
 
 
 def test_circle_discrete_m4_exact_matrix() -> None:

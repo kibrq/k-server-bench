@@ -132,5 +132,5 @@ Example file:
 
 Notes:
 - If this is provided, the evaluator does not run the candidate subprocess.
-- If a file path is provided, it is resolved from the evaluator process working directory, not from `directory`. In practice, absolute paths are safer.
+- If a file path is provided, it is resolved from the evaluator process working directory, not from `directory`. Prefer an explicit path if the caller's working directory may vary.
 - The JSON object must decode to a dictionary.

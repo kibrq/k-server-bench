@@ -14,7 +14,7 @@ import pandas as pd
 from sklearn.metrics import r2_score
 from tqdm.auto import tqdm
 
-from kserverclean.context.numpy_wf_context import WFContext
+from kserver.context.numpy_wf_context import WFContext
 
 from .numpy_kserver_instance import NumpyKServerInstance
 

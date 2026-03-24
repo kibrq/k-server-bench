@@ -5,10 +5,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from kserverclean.context import WFContext, all_multicombinations
-from kserverclean.graph.hash_utils import create_normalized_sha256_hash_fn
-from kserverclean.graph.parallel_bfs_exploration import parallel_bfs_exploration
-from kserverclean.metrics.circle import Circle
+from kserver.context import WFContext, all_multicombinations
+from kserver.graph.hash_utils import create_normalized_sha256_hash_fn
+from kserver.graph.parallel_bfs_exploration import parallel_bfs_exploration
+from kserver.metrics.circle import Circle
 
 pytestmark = pytest.mark.legacy_compat
 

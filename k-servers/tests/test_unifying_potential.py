@@ -3,10 +3,10 @@ from itertools import product
 import numpy as np
 import pytest
 
-from kserverclean.context.numpy_wf_context import WFContext
-from kserverclean.context.support import SupportWFAContext, k_taxi_update_support
-from kserverclean.metrics.circle import Circle
-from kserverclean.potential.canonical_potential import Potential
+from kserver.context.numpy_wf_context import WFContext
+from kserver.context.support import SupportWFAContext, k_taxi_update_support
+from kserver.metrics.circle import Circle
+from kserver.potential.canonical_potential import Potential
 
 
 def _unifying_hyperparams(k: int) -> tuple[int, list[list[int]], list[int]]:
@@ -146,7 +146,7 @@ def _handle_mixed_requests_support(
 
 
 def test_k_taxi_counterexample_breaks_unifying_potential_from_notebook() -> None:
-    # Source: draft-v2/260112/main.ipynb counter_examples (k=4, m=8).
+    # Source: archived notebook counterexample for the k=4, m=8 case.
     m = 8
     k = 4
     servers = (0.0, 0.0, 3.0, 4.0)
@@ -181,7 +181,7 @@ def test_k_taxi_counterexample_breaks_unifying_potential_from_notebook() -> None
 
 
 def test_k3_m8_counterexample_breaks_unifying_potential_from_notebook() -> None:
-    # Source: draft-v2/260112/main.ipynb ("k = 3 case reproduction").
+    # Source: archived notebook reproduction for the k=3 case.
     m = 8
     k = 3
     servers = (1.0, 6.0, 7.0)

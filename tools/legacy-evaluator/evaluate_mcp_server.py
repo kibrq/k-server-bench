@@ -40,7 +40,7 @@ async def evaluate_directory(
 
     directory: Annotated[
         str,
-        Field(description="Absolute path containing the implemented solution."),
+        Field(description="Path to the directory containing the implemented solution."),
     ],
 
     metrics_names: Annotated[

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="/home/kserver/k-server-bench"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 RESTART_RAY_SCRIPT="${REPO_ROOT}/tools/legacy-evaluator/restart_ray.sh"
 K_SERVER_ENV_NAME="${K_SERVER_ENV_NAME:-k-server}"
 

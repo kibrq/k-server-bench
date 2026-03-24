@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="/home/kserver/k-server-bench"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SETUP_SCRIPT="${REPO_ROOT}/agents/setup.sh"
-TARGET_DIR="/home/kserver/workspace"
+RUN_AS_USER="kserver"
+TARGET_DIR="${TARGET_DIR:-$(pwd)}"
+USER_HOME="$(getent passwd "${RUN_AS_USER}" | cut -d: -f6)"
 CODEX_HOME_DIR="${TARGET_DIR}/.codex"
-GLOBAL_CODEX_HOME_DIR="/home/kserver/.codex"
+GLOBAL_CODEX_HOME_DIR="${GLOBAL_CODEX_HOME_DIR:-${USER_HOME}/.codex}"
 CODEX_AUTH_MOUNT_PATH="${CODEX_AUTH_MOUNT_PATH:-/run/secrets/codex-auth.json}"
 CODEX_AUTH_PATH="${GLOBAL_CODEX_HOME_DIR}/auth.json"
 K_SERVER_ENV_NAME="${K_SERVER_ENV_NAME:-k-server}"
-RUN_AS_USER="kserver"
 
 run_as_kserver() {
   runuser -u "${RUN_AS_USER}" -- "$@"

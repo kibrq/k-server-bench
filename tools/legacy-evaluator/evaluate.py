@@ -16,7 +16,7 @@ BENCH_ROOT = LEGACY_EVALUATOR_HOME.parent.parent
 KSERVERCLEAN_SRC = BENCH_ROOT / "k-servers" / "src"
 DEFAULT_METRICS_DIR = BENCH_ROOT / "metrics"
 
-from kserverclean.evaluation import NumpyKServerInstance, compute_potential_stats
+from kserver.evaluation import NumpyKServerInstance, compute_potential_stats
 from ray_kserver_instance import KServerInstanceRayFriendly, to_ray_friendly
 from ray_utils import connect_or_restart_ray
 

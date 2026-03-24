@@ -4,9 +4,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from kserverclean.context.numpy_wf_context import WFContext
-from kserverclean.evaluation import NumpyKServerInstance, compute_potential_stats
-from kserverclean.potential.canonical_potential import Potential as CanonicalPotential
+from kserver.context.numpy_wf_context import WFContext
+from kserver.evaluation import NumpyKServerInstance, compute_potential_stats
+from kserver.potential.canonical_potential import Potential as CanonicalPotential
 
 
 def _line_metric(m: int) -> np.ndarray:

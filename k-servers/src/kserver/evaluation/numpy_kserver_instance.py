@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from kserverclean.context.numpy_wf_context import WFContext
+from kserver.context.numpy_wf_context import WFContext
 
 
 class RowMappingProxy(Mapping):

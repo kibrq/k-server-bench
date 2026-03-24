@@ -1,8 +1,6 @@
 # EVOLVE-BLOCK-START
-"""Initial baseline for the legacy evaluator with all three components editable."""
 
-from typing import Any, Dict, List, Tuple
-
+from typing import List, Dict, Any, Tuple
 import numpy as np
 
 
@@ -15,6 +13,10 @@ def estimated_submissions(
     return n_workers * search_timeout / max_worker_timeout
 
 
+def default_kwargs() -> Dict[str, Any]:
+    return {}
+
+
 class PotentialFamily:
     def __init__(
         self,
@@ -23,88 +25,105 @@ class PotentialFamily:
         search_timeout: float,
         min_worker_timeout: float,
         max_worker_timeout: float,
+        *,
+        potential_kwargs: Dict[str, Any] = None,
     ):
         self.n_instances = n_instances
         self.n_workers = n_workers
         self.search_timeout = search_timeout
         self.min_worker_timeout = min_worker_timeout
         self.max_worker_timeout = max_worker_timeout
+
         self.estimated_budget = estimated_submissions(
             n_workers=n_workers,
             search_timeout=search_timeout,
             min_worker_timeout=min_worker_timeout,
             max_worker_timeout=max_worker_timeout,
-        ) / max(n_instances, 1)
-        self.best_result = None
-        self.best_kwargs: Dict[str, Any] = {}
-        self.submitted = False
+        ) / n_instances
 
-    def ask(self) -> List[Dict[str, Any]]:
-        if self.submitted:
-            return []
-        self.submitted = True
-        return [
-            {
-                "worker_input": {
-                    "potential_kwargs": self.best_kwargs,
-                    "search_evaluator_kwargs": {"instance_idx": 0},
-                },
-                "timeout": 1.0,
-                "metadata": {"candidate_id": "baseline"},
-            }
-        ]
+        self.potential_kwargs = potential_kwargs
+        if self.potential_kwargs is None:
+            self.potential_kwargs = default_kwargs()
 
-    def tell(self, submissions, results):
-        for submission, result in zip(submissions, results):
-            if result is None:
-                continue
-            score = float(len(result.get("violations", [])))
-            candidate = {
-                "score": score,
-                "kwargs": dict(submission["worker_input"]["potential_kwargs"]),
-            }
-            if self.best_result is None or score < self.best_result["score"]:
-                self.best_result = candidate
-                self.best_kwargs = dict(candidate["kwargs"])
+    def ask(self) -> List[Dict]:
+        return []
 
-    def finalize(self) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-        recommendation = self.best_result
-        if recommendation is None:
-            recommendation = {"score": 0.0, "kwargs": dict(self.best_kwargs)}
-        summary = {
-            "estimated_budget": self.estimated_budget,
-            "submitted": self.submitted,
-        }
-        return [recommendation], summary
+    def tell(self, submission, results):
+        pass
+
+    def finalize(self) -> Tuple[List[Dict], Dict]:
+        return [{"score": 0.0, "kwargs": self.potential_kwargs}], {}
+
+
+import numpy as np
+from itertools import product
+import time
+
+from typing import List, Dict, Any
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Potential:
     def __init__(self, context, **kwargs):
-        self.context = context
+        pass
 
     def __call__(self, wf):
         wf = np.asarray(wf)
-        return float(np.sum(wf))
+        return np.sum(wf)
+
+
+from kserver.cpp_compat import WFContext
+import numpy as np
+import time
+
+from typing import List, Dict, Any
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class SearchEvaluator:
     def __init__(
         self,
-        instances,
-        potential_cls,
-        potential_kwargs,
+        instances: List["KServerInstance"],
+        potential_cls: "Potential",
+        potential_kwargs: Dict[str, Any],
         timeout: float = None,
         **kwargs,
     ):
+        # Keep this unchanged
+        self.start_time = time.time()
         self.timeout = timeout
-        self.instance_idx = int(kwargs.get("instance_idx", 0))
-        self.instance = instances[self.instance_idx]
-        self.nodes = self.instance.get_nodes()
-        self.edges = self.instance.get_edges()
-        self.context = self.instance.get_context()
-        self.potential = potential_cls(self.context, **potential_kwargs)
-        self._potential_cache: Dict[bytes, float] = {}
+        self.instances = instances
+        
 
+        # Here you can parse kwargs and prepare for __call__
+        self.seed = kwargs.get("seed", None)
+        self.instance_idx = kwargs.get("instance_idx", 0)
+
+        instance = instances[self.instance_idx]
+
+        self.nodes = instance.get_nodes()
+        self.edges = instance.get_edges()
+        self.context = instance.get_context()
+        self.bellman = instance.get_bellman()
+
+        self.potential = potential_cls(self.context, **potential_kwargs)
+
+        self.rng = np.random.default_rng(self.seed)
+        self.edges_idxes = self.rng.permutation(len(self.edges))        
+
+        self.total_time_getting_edges = 0
+        self.total_time_checking_violations = 0
+        self.total_time_getting_wf = 0
+        self.total_time_getting_nodes = 0
+        self.total_time_computing_potential = 0
+        self.total_time_bookkeeping = 0
+
+    # You absolutely must keep KeyboardInterrupt handling and exit upon it
+    # Otherwise, the whole evaluation will be terminated
     def __call__(self):
         state = {
             "edges_processed": 0,
@@ -113,37 +132,94 @@ class SearchEvaluator:
         }
 
         try:
-            for edge_idx, edge in enumerate(self.edges):
-                if self._is_violation(edge):
+            for idx in self.edges_idxes:
+                # You can compute any metrics here
+                # This example computes violations_k
+
+                start_time = time.time()
+                edge = self.edges[idx]
+                end_time = time.time()
+                self.total_time_getting_edges += end_time - start_time
+
+                start_time = time.time()
+                violation_info = self.check_violation(edge)
+                end_time = time.time()
+                self.total_time_checking_violations += end_time - start_time
+
+                start_time = time.time()
+                if violation_info["violation"]:
                     state["violations"].append(
-                        {
-                            "edge_idx": edge_idx,
-                            "edge_up": self._compute_potential(edge["from"]),
-                            "edge_vp": self._compute_potential(edge["to"]),
-                            "edge_ext": edge["ext"],
-                            "edge_d_min": edge["d_min"],
-                        }
+                        dict(
+                            edge_idx = idx,
+                            edge_up = violation_info["up"],
+                            edge_vp = violation_info["vp"],
+                            edge_ext = violation_info["ext"],
+                            edge_d_min = violation_info["d_min"],
+                        )   
                     )
+
                 state["edges_processed"] += 1
+
+                end_time = time.time()
+                self.total_time_bookkeeping += end_time - start_time
+
         except KeyboardInterrupt:
             pass
 
+        logger.debug(f"Total time getting edges: {self.total_time_getting_edges}")
+        logger.debug(f"Total time checking violations: {self.total_time_checking_violations}")
+        logger.debug(f"Total time getting wf: {self.total_time_getting_wf}")
+        logger.debug(f"Total time getting nodes: {self.total_time_getting_nodes}")
+        logger.debug(f"Total time computing potential: {self.total_time_computing_potential}")
+        logger.debug(f"Total time bookkeeping: {self.total_time_bookkeeping}")
+        logger.debug(f"Ratio of processed edges: {state['edges_processed'] / state['edges_total']}")
+
         return state
 
-    def _is_violation(self, edge: Dict[str, Any]) -> bool:
-        up = self._compute_potential(edge["from"])
-        vp = self._compute_potential(edge["to"])
-        return vp - up + (self.context.k + 1) * edge["d_min"] < edge["ext"]
 
-    def _compute_potential(self, node_idx: int) -> float:
+    def check_violation(self, edge: Dict[str, Any]):
+        start_time = time.time()
+        u = edge["from"]
+        v = edge["to"]
+        end_time = time.time()
+        self.total_time_getting_nodes += end_time - start_time
+
+        
+        up = self.compute_potential(u)
+        vp = self.compute_potential(v)
+
+        violation = vp - up + (self.context.k + 1) * edge["d_min"] < edge["ext"]
+
+        return {
+            "violation": violation,
+            "up": up,
+            "vp": vp,
+            **edge,
+        }
+
+
+    def compute_potential(self, node_idx: int):
+        start_time = time.time()
         wf = np.asarray(self.nodes[node_idx]["wf_norm"])
-        key = wf.data.tobytes()
-        if key not in self._potential_cache:
-            value = self.potential(wf)
-            if isinstance(value, tuple):
-                value = value[0]
-            self._potential_cache[key] = float(value)
-        return self._potential_cache[key]
+        end_time = time.time()
+        self.total_time_getting_wf += end_time - start_time
 
+
+        # You should keep caching which significantly speeds up the evaluation
+        if not hasattr(self, "_potential_cache"):
+            self._potential_cache = {}
+
+        key = wf.data.tobytes()
+        if not key in self._potential_cache:
+            start_time = time.time()
+            val = self.potential(wf)
+            end_time = time.time()
+            self.total_time_computing_potential += end_time - start_time
+
+            if isinstance(val, tuple):
+                val, info = val
+            self._potential_cache[key] = val
+
+        return self._potential_cache[key]
 
 # EVOLVE-BLOCK-END

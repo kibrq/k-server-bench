@@ -29,15 +29,16 @@ def main() -> int:
     )
     sweep_path = sweep_dir / "sweep.sh"
     command = (
-        f"{repo_root / 'experiments' / 'loong-flow' / 'run_math.sh'} "
-        f"--env {sweep_dir / 'base.env'} "
-        f"--env {tasks_dir / 'implementation' / 'general-legacy-evaluator' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'metrics' / 'k4_general_task' / '.env'} "
-        f"-- --config {sweep_dir / 'config.yaml'} "
-        f"--eval-file {repo_root / 'experiments' / 'loong-flow' / 'eval_program.py'} "
-        f"--initial-file {sweep_dir / 'initial.py'} "
+        'ROOT="$(git rev-parse --show-toplevel)" && '
+        "$ROOT/experiments/loong-flow/run_math.sh "
+        "--env $ROOT/experiments/loong-flow/sweeps/general-legacy-evaluator-k4-general-task/base.env "
+        "--env $ROOT/tasks/implementation/general-legacy-evaluator/.env "
+        "--env $ROOT/tasks/hints/metrics/k4_general_task/.env "
+        "-- --config $ROOT/experiments/loong-flow/sweeps/general-legacy-evaluator-k4-general-task/config.yaml "
+        "--eval-file $ROOT/experiments/loong-flow/eval_program.py "
+        "--initial-file $ROOT/experiments/loong-flow/sweeps/general-legacy-evaluator-k4-general-task/initial.py "
         "--workspace-path ./workspace "
-        f"--task-file {sweep_dir / 'TASK.md'} "
+        "--task-file $ROOT/experiments/loong-flow/sweeps/general-legacy-evaluator-k4-general-task/TASK.md "
         "--log-level DEBUG"
     )
     sweep_path.write_text("\n".join([command, command, command, ""]), encoding="utf-8")

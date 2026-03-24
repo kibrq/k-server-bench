@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from kserverclean.context.common import all_multicombinations
+from kserver.context.common import all_multicombinations
 
 
 def test_all_multicombinations_negative_k_raises() -> None:

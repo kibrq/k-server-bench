@@ -10,8 +10,8 @@ from typing import Any, Dict
 
 import numpy as np
 
-from kserverclean.context import all_multicombinations, k_taxi_update
-from kserverclean.graph import (
+from kserver.context import all_multicombinations, k_taxi_update
+from kserver.graph import (
     NodeBookkeeper,
     create_circle_symmetry_hash_fn,
     create_main_gc_profile_hooks,
@@ -22,7 +22,7 @@ from kserverclean.graph import (
     create_worker_timing_profile_hooks,
     parallel_bfs_exploration,
 )
-from kserverclean.metrics.circle import Circle
+from kserver.metrics.circle import Circle
 
 
 class BloomNodeBookkeeper(NodeBookkeeper):

@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 import json
 import traceback
 
-from kserverclean.potential.canonical_potential import Potential
+from kserver.potential.canonical_potential import Potential
 
 
 POTENTIAL_KWARGS = {

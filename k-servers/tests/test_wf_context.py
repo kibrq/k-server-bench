@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import pytest
 
-from kserverclean.context.numpy_wf_context import WFContext
+from kserver.context.numpy_wf_context import WFContext
 
 
 def _line_metric(m: int) -> np.ndarray:

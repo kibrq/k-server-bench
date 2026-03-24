@@ -48,7 +48,7 @@ def create_circle_symmetry_hash_fn(context: Any, rotation_step: int = 2):
     """
     Canonical hash under circle symmetries (rotation + reflection).
 
-    This mirrors the behavior from draft-v2/260122/circle.py:
+    This matches the legacy circle-symmetry hashing behavior:
     - normalize by subtracting min(wf)
     - iterate rotations in steps of 2 (default) for k-taxi circle parity
     - compare rotated and reflected candidates and keep lexicographically

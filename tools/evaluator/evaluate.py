@@ -27,7 +27,7 @@ KSERVERCLEAN_SRC = BENCH_ROOT / "k-servers" / "src"
 if str(KSERVERCLEAN_SRC) not in sys.path:
     sys.path.insert(0, str(KSERVERCLEAN_SRC))
 
-from kserverclean.evaluation import NumpyKServerInstance, compute_potential_stats  # noqa: E402
+from kserver.evaluation import NumpyKServerInstance, compute_potential_stats  # noqa: E402
 
 
 logging.basicConfig(

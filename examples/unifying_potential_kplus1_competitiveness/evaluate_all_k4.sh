@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BENCH_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-POTENTIAL_FILE="${BENCH_ROOT}/../k-server-clean/src/kserverclean/potential/canonical_potential.py"
+POTENTIAL_FILE="${BENCH_ROOT}/k-servers/src/kserver/potential/canonical_potential.py"
 KWARGS_FILE="${SCRIPT_DIR}/kwargs.json"
 RESULTS_DIR="/tmp"
 

@@ -11,8 +11,8 @@ KSERVERCLEAN_SRC = LEGACY_EVALUATOR_HOME.parent.parent / "k-servers" / "src"
 if str(KSERVERCLEAN_SRC) not in sys.path:
     sys.path.insert(0, str(KSERVERCLEAN_SRC))
 
-from kserverclean.context.numpy_wf_context import WFContext
-from kserverclean.evaluation import NumpyKServerInstance
+from kserver.context.numpy_wf_context import WFContext
+from kserver.evaluation import NumpyKServerInstance
 
 class RowMappingProxy(MapABC):
     __slots__ = ("_cols", "_i", "_schema")

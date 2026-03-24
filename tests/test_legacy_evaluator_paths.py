@@ -13,7 +13,7 @@ SRC = ROOT / "k-servers" / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kserverclean.evaluation import NumpyKServerInstance
+from kserver.evaluation import NumpyKServerInstance
 
 
 LEGACY_EVALUATOR = ROOT / "tools" / "legacy-evaluator" / "evaluate.py"

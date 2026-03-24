@@ -13,7 +13,7 @@ python "${ROOT}/tools/check_circle_potential_on_the_fly.py" \
   --n-workers "${N_WORKERS}" \
   --include-k-taxi \
   --disable-gc-during-run \
-  --potential-file "${ROOT}/k-servers/src/kserverclean/potential/canonical_potential.py" \
+  --potential-file "${ROOT}/k-servers/src/kserver/potential/canonical_potential.py" \
   --potential-kwargs-file "${ROOT}/tests/canonical_circle_taxi_k4_m6_kwargs.json" \
   >"$TMP_OUTPUT"
 

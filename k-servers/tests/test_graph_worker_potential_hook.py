@@ -1,8 +1,8 @@
 import numpy as np
 
-from kserverclean.context import all_multicombinations
-from kserverclean.graph import create_worker_potential_hooks, parallel_bfs_exploration
-from kserverclean.metrics.circle import Circle
+from kserver.context import all_multicombinations
+from kserver.graph import create_worker_potential_hooks, parallel_bfs_exploration
+from kserver.metrics.circle import Circle
 
 
 class SumPotential:

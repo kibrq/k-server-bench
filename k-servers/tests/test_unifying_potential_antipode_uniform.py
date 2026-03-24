@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from kserverclean.context.numpy_wf_context import WFContext
-from kserverclean.metrics.uniform import Uniform
-from kserverclean.metrics.utils import antipode_extension
-from kserverclean.potential.canonical_potential import Potential
+from kserver.context.numpy_wf_context import WFContext
+from kserver.metrics.uniform import Uniform
+from kserver.metrics.utils import antipode_extension
+from kserver.potential.canonical_potential import Potential
 
 
 def _unifying_hyperparams(k: int) -> tuple[int, list[list[int]], list[int]]:

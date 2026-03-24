@@ -1,8 +1,8 @@
 import numpy as np
 
-from kserverclean.context.numpy_wf_context import WFContext
-from kserverclean.graph.hash_utils import create_circle_symmetry_hash_fn
-from kserverclean.metrics.circle import Circle
+from kserver.context.numpy_wf_context import WFContext
+from kserver.graph.hash_utils import create_circle_symmetry_hash_fn
+from kserver.metrics.circle import Circle
 
 
 def _rotate_config(cfg, r, m):

@@ -32,14 +32,15 @@ def main() -> int:
     )
     sweep_path = sweep_dir / "sweep.sh"
     command = (
-        f"{repo_root / 'experiments' / 'best-of-n' / 'run_best_of_n.sh'} "
-        f"sweeps/canonical-potential-just-potential-family-k4-general-task "
-        f"--env {sweep_dir / 'base.env'} "
-        f"--env {tasks_dir / 'implementation' / 'potential-family-only' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'canonical-potential' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'metrics' / 'k4_general_task' / '.env'} "
-        f"-- --eval-script {repo_root / 'tools' / 'legacy-evaluator' / 'evaluate.py'} "
-        f"--model-config {sweep_dir / 'model_config.json'}"
+        'ROOT="$(git rev-parse --show-toplevel)" && '
+        "$ROOT/experiments/best-of-n/run_best_of_n.sh "
+        "sweeps/canonical-potential-just-potential-family-k4-general-task "
+        "--env $ROOT/experiments/best-of-n/sweeps/canonical-potential-just-potential-family-k4-general-task/base.env "
+        "--env $ROOT/tasks/implementation/potential-family-only/.env "
+        "--env $ROOT/tasks/hints/canonical-potential/.env "
+        "--env $ROOT/tasks/hints/metrics/k4_general_task/.env "
+        "-- --eval-script $ROOT/tools/legacy-evaluator/evaluate.py "
+        "--model-config $ROOT/experiments/best-of-n/sweeps/canonical-potential-just-potential-family-k4-general-task/model_config.json"
     )
     sweep_path.write_text(command + "\n", encoding="utf-8")
     print(f"Generated task assets in {sweep_dir}")

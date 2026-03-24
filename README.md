@@ -1,12 +1,12 @@
 # k-server-bench
 
-Top-level workspace for k-server benchmarking and evaluation.
+Workspace for k-server benchmarking and evaluation.
 
 ## Layout
 
 - `k-servers/`: library code for WF contexts, potential evaluation, graph exploration, metrics, and tests
 - `tasks/`: shared task components such as `goals/`, `implementations/`, and `canonical-potential/`
-- `experiments/`: draft-v2-style method runners and sweep folders for `best-of-n`, `shinka-evolve`, and `loong-flow`
+- `experiments/`: method runners and sweep folders for `best-of-n`, `shinka-evolve`, and `loong-flow`
 - `tools/`: evaluator scripts and utility scripts used around the benchmark workflow
 
 ## Usage
@@ -31,11 +31,12 @@ Released experiment folders live under:
 - `experiments/shinka-evolve/`
 - `experiments/loong-flow/`
 
-Each method root provides a `run-sweep.sh` entrypoint that mirrors the draft-v2 workflow:
+Each method root provides a `run-sweep.sh` entrypoint for running released sweeps:
 
 ```bash
 cd experiments/best-of-n
 ./run-sweep.sh canonical-potential-just-potential-family
+./run-sweep.sh canonical-potential-just-potential-family-k4-general-task
 ```
 
 Each sweep regenerates its local prompt and initial files from the shared task components under `tasks/` before launching.

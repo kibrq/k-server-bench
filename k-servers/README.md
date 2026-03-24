@@ -1,12 +1,12 @@
 # k-servers
 
-Install this package from inside [`k-server-bench/k-servers`](/home/brillian/rl-k-servers/k-server-bench/k-servers), for example with:
+Install this package from inside `k-server-bench/k-servers`, for example with:
 
 ```bash
 pip install -e .
 ```
 
-After installation, the top-level scripts in [`k-server-bench/scripts`](/home/brillian/rl-k-servers/k-server-bench/scripts) can import `kserverclean` directly.
+After installation, the top-level scripts in the repository can import `kserver` directly.
 
 ## Known Issues
 

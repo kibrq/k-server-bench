@@ -9,7 +9,7 @@ import gc
 from multiprocessing.connection import wait as mp_wait
 
 import numpy as np
-from kserverclean.context.numpy_wf_context import WFContext
+from kserver.context.numpy_wf_context import WFContext
 
 
 HashFn = Callable[[Any], tuple[Hashable, Dict[str, Any]]]

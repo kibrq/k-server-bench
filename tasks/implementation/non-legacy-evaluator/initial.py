@@ -10,8 +10,7 @@ from typing import Any
 
 import numpy as np
 
-from kserver.potential import KServerInstance
-
+from kserver.evaluation import NumpyKServerInstance
 
 
 # EVOLVE-BLOCK-START
@@ -153,7 +152,7 @@ def is_violation(
 
 # Naive, can be changed. Uses only one instance
 def compute_candidate_score(
-    instance: KServerInstance,
+    instance: NumpyKServerInstance,
     potential_kwargs: dict[str, Any],
     *,
     max_edges: int | None = None,
@@ -206,7 +205,7 @@ def sample_candidate_kwargs(rng: np.random.Generator) -> dict[str, Any]:
 
 
 def main(args: Namespace):
-    instances = [KServerInstance.load(path) for path in args.metrics]
+    instances = [NumpyKServerInstance.load(path) for path in args.metrics]
     if not instances:
         raise ValueError("No metrics were provided")
 

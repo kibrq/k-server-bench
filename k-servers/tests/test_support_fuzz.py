@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from kserverclean.context.numpy_wf_context import WFContext, k_taxi_update
-from kserverclean.context.support import SupportWFAContext, k_taxi_update_support
-from kserverclean.metrics.circle import Circle
+from kserver.context.numpy_wf_context import WFContext, k_taxi_update
+from kserver.context.support import SupportWFAContext, k_taxi_update_support
+from kserver.metrics.circle import Circle
 
 
 def _random_line_metric(rng: np.random.Generator, m: int) -> np.ndarray:
@@ -223,7 +223,7 @@ def test_fuzz_support_matches_numpy_on_circle_k_taxi(m: int, seed: int) -> None:
 
 
 def test_support_matches_numpy_on_counterexample_via_halfstep_mapping() -> None:
-    # Counterexample source (continuous half-steps): draft-v2/260112/main.ipynb
+    # Counterexample source (continuous half-steps): archived notebook example.
     # We map x -> 2x onto a discrete circle of size 16 so both contexts
     # operate on identical integer states and distances.
     m_cont = 8

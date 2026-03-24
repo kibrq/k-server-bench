@@ -10,8 +10,7 @@ from typing import Any
 
 import numpy as np
 
-from kserver.potential import KServerInstance
-
+from kserver.evaluation import NumpyKServerInstance
 
 
 # EVOLVE-BLOCK-START
@@ -39,7 +38,10 @@ class Potential:
         self.k = context.k
         self.n = int(kwargs["n"])
         self.index_matrix = np.asarray(kwargs["index_matrix"], dtype=np.int16)
-        self.coefs = np.asarray(kwargs["coefs"], dtype=np.int32)
+        coefs = kwargs.get("coefs", None)
+        if coefs is None:
+            coefs = np.zeros(self.n * (self.n - 1) // 2, dtype=np.int32)
+        self.coefs = np.asarray(coefs, dtype=np.int32)
         self.support = kwargs.get("support", None)
         if self.support is None:
             self.support = range(context.m)
@@ -150,7 +152,7 @@ def is_violation(
 
 # Naive, can be changed. Uses only one instance
 def compute_candidate_score(
-    instance: KServerInstance,
+    instance: NumpyKServerInstance,
     potential_kwargs: dict[str, Any],
     *,
     max_edges: int | None = None,
@@ -203,7 +205,7 @@ def sample_candidate_kwargs(rng: np.random.Generator) -> dict[str, Any]:
 
 
 def main(args: Namespace):
-    instances = [KServerInstance.load(path) for path in args.metrics]
+    instances = [NumpyKServerInstance.load(path) for path in args.metrics]
     if not instances:
         raise ValueError("No metrics were provided")
 
@@ -220,35 +222,63 @@ def main(args: Namespace):
         "kwargs": default_canonical_kwargs(),
         "details": None,
     }
+    search_errors = []
 
-    baseline_result = compute_candidate_score(
-        search_instance,
-        opt_so_far["kwargs"],
-        max_edges=max_edges,
-    )
-    opt_so_far["score"] = baseline_result["n_violations"]
-    opt_so_far["details"] = baseline_result
-
-    n_attempts = 0
-    # Naive random sampling
-    while time.time() < deadline:
-        # Naive check that is only for initial evaluation to save resources. Remove it
-        if n_attempts < 24:
-            break
-        
-        random_potential_kwargs = sample_candidate_kwargs(rng)
-        result = compute_candidate_score(
+    try:
+        baseline_result = compute_candidate_score(
             search_instance,
-            random_potential_kwargs,
+            opt_so_far["kwargs"],
             max_edges=max_edges,
         )
+        opt_so_far["score"] = baseline_result["n_violations"]
+        opt_so_far["details"] = baseline_result
+    except KeyboardInterrupt:
+        return {
+            "potential_kwargs": opt_so_far["kwargs"],
+            "_search_summary": {
+                "n_attempts": 0,
+                "best_score": None,
+                "details": None,
+                "search_errors": ["KeyboardInterrupt during baseline evaluation"],
+            },
+        }
+    except Exception:
+        search_errors.append(f"baseline_failed:\n{traceback.format_exc()}")
 
-        if result["n_violations"] < opt_so_far["score"]:
-            opt_so_far["score"] = result["n_violations"]
-            opt_so_far["kwargs"] = random_potential_kwargs
-            opt_so_far["details"] = result
+    n_attempts = 0
+    try:
+        # Naive random sampling
+        while time.time() < deadline:
+            # Naive check that is only for initial evaluation to save resources. Remove it
+            if n_attempts < 24:
+                break
 
-        n_attempts += 1
+            random_potential_kwargs = sample_candidate_kwargs(rng)
+            try:
+                result = compute_candidate_score(
+                    search_instance,
+                    random_potential_kwargs,
+                    max_edges=max_edges,
+                )
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                search_errors.append(
+                    f"attempt_{n_attempts}_failed:\n{traceback.format_exc()}"
+                )
+                n_attempts += 1
+                continue
+
+            if result["n_violations"] < opt_so_far["score"]:
+                opt_so_far["score"] = result["n_violations"]
+                opt_so_far["kwargs"] = random_potential_kwargs
+                opt_so_far["details"] = result
+
+            n_attempts += 1
+    except KeyboardInterrupt:
+        search_errors.append("KeyboardInterrupt during search")
+    except Exception:
+        search_errors.append(f"search_loop_failed:\n{traceback.format_exc()}")
 
     return {
         "potential_kwargs": opt_so_far["kwargs"],
@@ -256,6 +286,7 @@ def main(args: Namespace):
             "n_attempts": n_attempts,
             "best_score": opt_so_far["score"],
             "details": opt_so_far["details"],
+            "search_errors": search_errors,
         },
     }
 

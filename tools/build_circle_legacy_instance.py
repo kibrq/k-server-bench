@@ -10,8 +10,8 @@ import wandb
 
 import numpy as np
 
-from kserverclean.context import WFContext, all_multicombinations, k_taxi_update
-from kserverclean.graph import (
+from kserver.context import WFContext, all_multicombinations, k_taxi_update
+from kserver.graph import (
     create_circle_symmetry_hash_fn,
     create_main_gc_profile_hooks,
     create_main_timing_profile_hooks,
@@ -19,7 +19,7 @@ from kserverclean.graph import (
     create_worker_timing_profile_hooks,
     parallel_bfs_exploration,
 )
-from kserverclean.metrics.circle import Circle
+from kserver.metrics.circle import Circle
 
 
 def _merge_hook_maps(*hook_maps: Dict[str, list]) -> Dict[str, list]:

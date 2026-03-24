@@ -51,7 +51,7 @@ async def evaluate_directory(
     ctx: Context[ServerSession, None],
     directory: Annotated[
         str,
-        Field(description="Absolute path containing the implemented solution."),
+        Field(description="Path to the directory containing the implemented solution."),
     ],
     metrics_names: Annotated[
         Optional[str],
@@ -138,9 +138,7 @@ async def evaluate_directory(
         Field(description="Raise if the candidate subprocess does not create its output JSON file. By default evaluation falls back to empty potential kwargs."),
     ] = None,
 ):
-    """
-    Evaluate the program file inside the given directory using the draft-v2/260317 evaluator.
-    """
+    """Evaluate the program file inside the given directory with the released evaluator."""
 
     try:
         if attempt_id is None:

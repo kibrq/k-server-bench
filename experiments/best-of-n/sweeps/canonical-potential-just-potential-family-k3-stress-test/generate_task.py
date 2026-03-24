@@ -33,14 +33,15 @@ def main() -> int:
     )
     sweep_path = sweep_dir / "sweep.sh"
     command = (
-        f"{repo_root / 'experiments' / 'best-of-n' / 'run_best_of_n.sh'} "
+        'ROOT="$(git rev-parse --show-toplevel)" && '
+        "$ROOT/experiments/best-of-n/run_best_of_n.sh "
         f"sweeps/{sweep_name} "
-        f"--env {sweep_dir / 'base.env'} "
-        f"--env {tasks_dir / 'implementation' / 'potential-family-only' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'canonical-potential' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'metrics' / 'k3_stress_test' / '.env'} "
-        f"-- --eval-script {repo_root / 'tools' / 'legacy-evaluator' / 'evaluate.py'} "
-        f"--model-config {sweep_dir / 'model_config.json'}"
+        f"--env $ROOT/experiments/best-of-n/sweeps/{sweep_name}/base.env "
+        "--env $ROOT/tasks/implementation/potential-family-only/.env "
+        "--env $ROOT/tasks/hints/canonical-potential/.env "
+        "--env $ROOT/tasks/hints/metrics/k3_stress_test/.env "
+        f"-- --eval-script $ROOT/tools/legacy-evaluator/evaluate.py "
+        f"--model-config $ROOT/experiments/best-of-n/sweeps/{sweep_name}/model_config.json"
     )
     sweep_path.write_text(command + "\n", encoding="utf-8")
     print(f"Generated task assets in {sweep_dir}")

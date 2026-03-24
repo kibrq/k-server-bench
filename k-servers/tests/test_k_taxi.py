@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from kserverclean.context.numpy_wf_context import (
+from kserver.context.numpy_wf_context import (
     WFContext,
     _build_preimage_for_request,
     _ensure_preimage_cache,

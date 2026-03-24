@@ -42,17 +42,18 @@ def main() -> int:
             or line.startswith("SHINKA_WFA_INITIAL_PATH=")
         )
     ]
-    filtered_lines.append(f"SHINKA_EXPERIMENT_PROMPT_PATH={sweep_dir / 'PROMPT.md'}")
-    filtered_lines.append(f"SHINKA_EXPERIMENT_SYSTEM_PATH={sweep_dir / 'SYSTEM.md'}")
-    filtered_lines.append(f"SHINKA_WFA_INITIAL_PATH={sweep_dir / 'initial.py'}")
+    filtered_lines.append('SHINKA_EXPERIMENT_PROMPT_PATH="${SWEEP_DIR}/PROMPT.md"')
+    filtered_lines.append('SHINKA_EXPERIMENT_SYSTEM_PATH="${SWEEP_DIR}/SYSTEM.md"')
+    filtered_lines.append('SHINKA_WFA_INITIAL_PATH="${SWEEP_DIR}/initial.py"')
     base_env_path.write_text("\n".join(filtered_lines) + "\n", encoding="utf-8")
     sweep_path = sweep_dir / "sweep.sh"
     command = (
-        f"{repo_root / 'experiments' / 'shinka-evolve' / 'run_evo.sh'} "
-        f"--env {sweep_dir / 'base.env'} "
-        f"--env {tasks_dir / 'implementation' / 'potential-family-only' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'canonical-potential' / '.env'} "
-        f"--env {tasks_dir / 'hints' / 'metrics' / 'k3_warmup' / '.env'}"
+        'ROOT="$(git rev-parse --show-toplevel)" && '
+        "$ROOT/experiments/shinka-evolve/run_evo.sh "
+        "--env $ROOT/experiments/shinka-evolve/sweeps/canonical-potential-just-potential-family/base.env "
+        "--env $ROOT/tasks/implementation/potential-family-only/.env "
+        "--env $ROOT/tasks/hints/canonical-potential/.env "
+        "--env $ROOT/tasks/hints/metrics/k3_warmup/.env"
     )
     sweep_path.write_text("\n".join([command, command, command, ""]), encoding="utf-8")
     print(f"Generated task assets in {sweep_dir}")
