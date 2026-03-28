@@ -146,13 +146,15 @@ bash agents/setup.sh <target-dir>
 
 This shared setup is agent-agnostic. It only copies the benchmark-facing docs and papers into the target directory.
 
-Evaluator can be access either by simply asking the coding agent to run `/abs/path/to/tools/evaluator/evaluate.py` whenever it needs to evaluate the developed potential. Another option is to use MCP.
+Evaluator can be access either by simply asking the coding agent to run `/abs/path/to/tools/evaluator/evaluate.py` whenever it needs to evaluate the developed potential (can be added into AGENTS.md/CLAUDE.md).
 
-For Codex, use (needs `pip install tomli tomli_w mcp`):
+Another option is to use MCP. For Codex, use (needs `pip install tomli tomli_w mcp`):
 
 ```bash
 bash agents/codex/setup.sh <target-dir>
 ```
+
+that does basic and Codex-specific MCP setup.
 
 MCP-specific setup details, including environment-split scenarios, are documented in [`agents/codex/README.md`](./agents/codex/README.md).
 

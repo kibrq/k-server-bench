@@ -37,9 +37,10 @@ RUN micromamba create -y -n ${K_SERVER_ENV_NAME} -c conda-forge \
     && micromamba clean -a -y
 
 COPY --chown=kserver:kserver k-servers /home/kserver/k-server-bench/k-servers
-COPY --chown=kserver:kserver requirements.txt /home/kserver/k-server-bench/requirements.txt
 
-RUN cd /home/kserver/k-server-bench && micromamba run -n ${K_SERVER_ENV_NAME} python -m pip install --no-cache-dir -r requirements.txt
+RUN cd /home/kserver/k-server-bench/k-servers \
+    && micromamba run -n ${K_SERVER_ENV_NAME} python -m pip install --no-cache-dir -r requirements.txt \
+    && micromamba run -n ${K_SERVER_ENV_NAME} python -m pip install --no-cache-dir -e .
 
 COPY --chown=kserver:kserver metrics /home/kserver/k-server-bench/metrics
 COPY --chown=kserver:kserver tasks /home/kserver/k-server-bench/tasks

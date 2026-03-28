@@ -19,6 +19,8 @@ RUN micromamba install -y -n ${K_SERVER_ENV_NAME} -c conda-forge \
     nodejs \
     && micromamba clean -a -y
 
+RUN micromamba run -n ${K_SERVER_ENV_NAME} pip install tomli tomli_w mcp
+
 RUN micromamba run -n ${K_SERVER_ENV_NAME} npm install -g @openai/codex
 
 USER root
