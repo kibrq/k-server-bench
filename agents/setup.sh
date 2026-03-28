@@ -7,10 +7,7 @@ BENCH_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  agents/setup.sh <agent-name> <target-dir> [agent-setup-args...]
-
-Currently supported agents:
-  codex
+  agents/setup.sh <target-dir>
 EOF
 }
 
@@ -36,48 +33,24 @@ download_arxiv_source() {
   rm -f "${archive_path}"
 }
 
-if [[ $# -lt 2 ]]; then
+if [[ $# -lt 1 ]]; then
   usage
   exit 2
 fi
 
-AGENT_NAME="$1"
-TARGET_DIR_INPUT="$2"
-shift 2
-
-case "${AGENT_NAME}" in
-  codex)
-    ;;
-  *)
-    echo "Error: unsupported agent '${AGENT_NAME}'" >&2
-    usage
-    exit 2
-    ;;
-esac
+TARGET_DIR_INPUT="$1"
+shift
 
 TARGET_DIR="$(mkdir -p "${TARGET_DIR_INPUT}" && cd "${TARGET_DIR_INPUT}" && pwd)"
 DOCS_DIR="${TARGET_DIR}/docs"
-AGENT_SETUP="${SCRIPT_DIR}/${AGENT_NAME}/setup.sh"
-AGENT_INSTRUCTIONS="${SCRIPT_DIR}/${AGENT_NAME}/AGENTS.md"
 K_SERVER_BENCH_USE_LEGACY_EVALUATOR="${K_SERVER_BENCH_USE_LEGACY_EVALUATOR:-false}"
 EVALUATOR_DOCS_DIR="${SCRIPT_DIR}/docs/evaluator"
 if [[ "${K_SERVER_BENCH_USE_LEGACY_EVALUATOR}" == "true" ]]; then
   EVALUATOR_DOCS_DIR="${SCRIPT_DIR}/docs/legacy-evaluator"
 fi
 
-if [[ ! -x "${AGENT_SETUP}" ]]; then
-  chmod +x "${AGENT_SETUP}"
-fi
-
 mkdir -p "${DOCS_DIR}"
-cp "${SCRIPT_DIR}/docs/QUICKSTART.md" "${DOCS_DIR}/"
 cp -a "${EVALUATOR_DOCS_DIR}/." "${DOCS_DIR}/"
-
-if [[ -f "${AGENT_INSTRUCTIONS}" ]]; then
-  cp "${AGENT_INSTRUCTIONS}" "${TARGET_DIR}/AGENTS.md"
-fi
 
 download_arxiv_source "coester_21" "2102.10474" "${DOCS_DIR}"
 download_arxiv_source "huang_22" "2205.08103" "${DOCS_DIR}"
-
-"${AGENT_SETUP}" "${TARGET_DIR}" "$@"

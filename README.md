@@ -128,35 +128,56 @@ Without Git LFS, the metric files in [`metrics/`](./metrics/README.md) will not 
 
 ### Installation
 
-After cloning the repo:
+The evaluator code needs [`k-servers`](./k-servers/README.md) that can be installed in the separate environment from the agents.
 
-```bash
-pip install -r requirements.txt
 ```
-
-This also installs the [`k-servers`](./k-servers/README.md) package.
+pip install -e ./k-servers
+```
 
 ---
 
 ### Coding Agents
 
-To prepare a workspace for a coding agent:
+To prepare a workspace with the benchmark docs and source papers:
 
 ```bash
-bash agents/setup.sh <agent-name> <target-dir>
+bash agents/setup.sh <target-dir>
 ```
 
-Currently supported:
+This shared setup is agent-agnostic. It only copies the benchmark-facing docs and papers into the target directory.
 
-* `codex`
+Evaluator can be access either by simply asking the coding agent to run `/abs/path/to/tools/evaluator/evaluate.py` whenever it needs to evaluate the developed potential. Another option is to use MCP.
 
-> See [this](agents/README.md) if your agent runs in a different environment.
+For Codex, use (needs `pip install tomli tomli_w mcp`):
+
+```bash
+bash agents/codex/setup.sh <target-dir>
+```
+
+MCP-specific setup details, including environment-split scenarios, are documented in [`agents/codex/README.md`](./agents/codex/README.md).
+
 
 After setup:
 
 1. Enter the target directory
 2. Start the agent
 3. Run a simple sanity check (e.g., implement a constant-zero potential)
+
+```text
+Implement a very simple potential that returns always zero and evaluate it on circle_k3_m6.pickle
+```
+
+The output should be:
+
+```
+"correct": true,
+      "error": null,
+      "combined_score": 0.7285714285714286,
+      "public": {
+        "0/violations_k": 570,
+        "0/violations_k_score": 0.7285714285714286,
+...
+```
 
 ---
 
@@ -261,4 +282,3 @@ Start here:
 ## Citation
 
 TODO
-

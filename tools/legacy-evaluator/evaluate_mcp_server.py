@@ -1,6 +1,7 @@
 import os
 from typing import Optional, List, Dict, Literal, Annotated
 from datetime import datetime
+import shlex
 
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.session import ServerSession
@@ -29,9 +30,17 @@ K_SERVER_MCP_EVALUATE_PATH = os.getenv(
 )
 K_SERVER_MCP_DEFAULT_FILENAME = os.getenv("K_SERVER_MCP_DEFAULT_FILENAME", "main.py")
 K_SERVER_MCP_KILL_GRACE_SECONDS = float(os.getenv("K_SERVER_MCP_KILL_GRACE_SECONDS", "3.0"))
+K_SERVER_MCP_CMD_PREFIX = os.getenv("K_SERVER_MCP_CMD_PREFIX", sys.executable)
 
 from evaluate import main as evaluate_main, parse_args
 import asyncio
+
+
+def _split_cmd_prefix(cmd_prefix: str) -> list[str]:
+    parts = shlex.split(cmd_prefix)
+    if not parts:
+        raise ValueError("cmd_prefix must not be empty")
+    return parts
 
 
 @mcp.tool()
@@ -166,6 +175,10 @@ async def evaluate_directory(
         Optional[float],
         Field(description="rho parameter for compute_potential_stats (env var, then default if None)."),
     ] = None,
+    cmd_prefix: Annotated[
+        Optional[str],
+        Field(description="Command prefix used to launch the evaluator process itself. Defaults to K_SERVER_MCP_CMD_PREFIX or the current Python executable."),
+    ] = None,
 ):
     """
     Evaluate the default program file inside the given directory and store results in the same directory.
@@ -241,10 +254,12 @@ async def evaluate_directory(
 
         os.makedirs(results_dir, exist_ok=True)
 
+        launch_prefix = _split_cmd_prefix(cmd_prefix or K_SERVER_MCP_CMD_PREFIX)
+
         with open(logout_filename, "w") as out, open(logerr_filename, "w") as err:
 
             proc = await asyncio.create_subprocess_exec(
-                sys.executable, K_SERVER_MCP_EVALUATE_PATH, *arguments,
+                *launch_prefix, K_SERVER_MCP_EVALUATE_PATH, *arguments,
                 stdout=out, stderr=err,
             )
             await ctx.info(f"Evaluating {program_filename} inside {directory}")

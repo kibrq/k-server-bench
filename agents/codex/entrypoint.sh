@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SETUP_SCRIPT="${REPO_ROOT}/agents/setup.sh"
+SETUP_SCRIPT="${REPO_ROOT}/agents/codex/setup.sh"
 RUN_AS_USER="kserver"
 TARGET_DIR="${TARGET_DIR:-$(pwd)}"
 USER_HOME="$(getent passwd "${RUN_AS_USER}" | cut -d: -f6)"
@@ -30,7 +30,7 @@ else
   echo "Warning: Codex auth file not found at ${CODEX_AUTH_MOUNT_PATH}; continuing without mounted auth." >&2
 fi
 
-run_as_kserver micromamba run -n "${K_SERVER_ENV_NAME}" "${SETUP_SCRIPT}" codex "${TARGET_DIR}"
+run_as_kserver micromamba run -n "${K_SERVER_ENV_NAME}" "${SETUP_SCRIPT}" "${TARGET_DIR}"
 
 if [[ $# -eq 0 ]]; then
   exec runuser -u "${RUN_AS_USER}" -- micromamba run -n "${K_SERVER_ENV_NAME}" bash

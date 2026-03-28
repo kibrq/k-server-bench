@@ -21,6 +21,17 @@ shift
 CODEX_HOME_DIR="${TARGET_DIR}/.codex"
 ADD_EVALUATE_MCP_ARGS=("$@")
 HAS_EVALUATOR_HOME=false
+SHARED_SETUP="${SCRIPT_DIR}/../setup.sh"
+
+if [[ ! -x "${SHARED_SETUP}" ]]; then
+  chmod +x "${SHARED_SETUP}"
+fi
+
+"${SHARED_SETUP}" "${TARGET_DIR}"
+
+if [[ -f "${SCRIPT_DIR}/AGENTS.md" ]]; then
+  cp "${SCRIPT_DIR}/AGENTS.md" "${TARGET_DIR}/AGENTS.md"
+fi
 
 for ((i = 0; i < ${#ADD_EVALUATE_MCP_ARGS[@]}; i++)); do
   case "${ADD_EVALUATE_MCP_ARGS[$i]}" in

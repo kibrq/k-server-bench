@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import shlex
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,7 @@ K_SERVER_MCP_EVALUATE_PATH = os.getenv(
 )
 K_SERVER_MCP_DEFAULT_FILENAME = os.getenv("K_SERVER_MCP_DEFAULT_FILENAME", "main.py")
 K_SERVER_EVALUATE_HOME = os.getenv("K_SERVER_EVALUATE_HOME", str(BENCH_ROOT))
+K_SERVER_MCP_CMD_PREFIX = os.getenv("K_SERVER_MCP_CMD_PREFIX", sys.executable)
 
 
 def _append_optional_flag(arguments: list[str], flag: str, value) -> None:
@@ -44,6 +46,13 @@ def _resolve_path(directory: str, value: Optional[str]) -> Optional[str]:
     if os.path.isabs(value):
         return value
     return os.path.join(directory, value)
+
+
+def _split_cmd_prefix(cmd_prefix: str) -> list[str]:
+    parts = shlex.split(cmd_prefix)
+    if not parts:
+        raise ValueError("cmd_prefix must not be empty")
+    return parts
 
 
 @mcp.tool()
@@ -100,6 +109,10 @@ async def evaluate_directory(
     exec_cmd: Annotated[
         Optional[str],
         Field(description="Command prefix used for the candidate subprocess, matching evaluate.py --exec."),
+    ] = None,
+    cmd_prefix: Annotated[
+        Optional[str],
+        Field(description="Command prefix used to launch the evaluator process itself. Defaults to K_SERVER_MCP_CMD_PREFIX or the current Python executable."),
     ] = None,
     compute_stats_round_digits: Annotated[
         Optional[int],
@@ -188,9 +201,11 @@ async def evaluate_directory(
         os.makedirs(results_dir, exist_ok=True)
         await ctx.info(f"Evaluating {program_filename} inside {directory} with {K_SERVER_MCP_EVALUATE_PATH}")
 
+        launch_prefix = _split_cmd_prefix(cmd_prefix or K_SERVER_MCP_CMD_PREFIX)
+
         with open(logout_filename, "w") as out, open(logerr_filename, "w") as err:
             proc = await asyncio.create_subprocess_exec(
-                sys.executable,
+                *launch_prefix,
                 K_SERVER_MCP_EVALUATE_PATH,
                 *arguments,
                 stdout=out,

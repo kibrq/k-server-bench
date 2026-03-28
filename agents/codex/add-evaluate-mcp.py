@@ -36,7 +36,7 @@ def parse_args(*args, **kwargs):
     parser.add_argument("--create-config", action="store_true", help="Create a config.toml file if it does not exist")
     parser.add_argument("--override-mcp-config", action="store_true", help="Override the MCP server config if it already exists")
     parser.add_argument("--env", type=str, default=[], nargs="+", help="Additional environment variables to set for the MCP server. (e.g. --env K_SERVER_EVALUATE_METRICS_NAMES=... --env K_SERVER_EVALUATE_SEARCH_TIMEOUT=...)")
-    
+
     return parser.parse_args(*args, **kwargs)
 
 def main():
