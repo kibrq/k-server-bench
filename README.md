@@ -1,143 +1,245 @@
 # k-server-bench
 
-`k-server-bench` is an executable benchmark and research workspace for automated potential discovery around the `k`-server conjecture.
+This project aims to **automate and accelerate progress** toward the [k-server conjecture](https://en.wikipedia.org/wiki/K-server_problem), a central problem in competitive analysis, using **open-ended AI-driven discovery**.
 
-The repository is built around a code-based challenge derived from a central open problem in competitive analysis. The task is to discover a potential function satisfying a large graph-structured system of inequalities associated with the Work Function Algorithm. Evaluation is sound but incomplete: any violated inequality definitively refutes a candidate, while satisfying all checked inequalities is strong evidence rather than a full proof of the corresponding infinite-case statement.
+The core task is to discover a **potential function** that satisfies a large, graph-structured system of linear inequalities. The evaluation procedure is **sound but incomplete**:
 
-This makes the repository useful in two ways:
+* Any violated inequality definitively refutes a candidate.
+* Satisfying all inequalities does *not* constitute a formal proof of the conjecture.
 
-1. as tooling for researchers exploring new potential-function hypotheses for the `k`-server problem
-2. as a benchmark for agentic code-based mathematical discovery, where progress can be tracked through automatically computed violations
+Nevertheless, a candidate that satisfies all constraints would provide strong evidence toward a valid proof. To the best of our knowledge, **no known potential satisfies all constraints** under our formulation for the open circle case with $$k = 4$$.
 
-Operationally, the repository has three main jobs:
+As such, a successful candidate would already represent a meaningful contribution—and could potentially lead to a full theoretical result when paired with a formal proof.
 
-1. define reusable task components
-2. provide evaluators and metric instances
-3. provide recipes for running discovery agents
+For additional mathematical background, see the [accompanying paper](TODO).
 
-## Repository Map
+---
 
-- [`docs/`](./docs/README.md): in-depth concepts and workflow documentation
-- [`k-servers/`](./k-servers/README.md): the `kserver` Python package used by the evaluators and tools
-- [`tasks/`](./tasks/README.md): reusable goals, implementation seeds, and hints that are assembled into tasks
-- [`experiments/`](./experiments/README.md): released method runners and sweep directories
-- [`tools/`](./tools/README.md): evaluators, metric-building utilities
-- [`metrics/`](./metrics/README.md): serialized benchmark instances used for scoring
-- [`examples/`](./examples/README.md): concrete evaluator invocations with fixed kwargs
-- [`tests/`](./tests/README.md): smoke tests for evaluator paths and benchmark wiring
-- [`agents/`](./agents/README.md): agent-specific setup and evaluator-facing docs
-- [`docker/`](./docker/README.md): container image used for reproducible runs
+## Results
 
-## Core Ideas
+Among previously human-discovered solutions for the open circle case with $$k = 4$$, the best known potential has:
 
-A candidate is usually a Python file that exposes:
+* **17 violations** out of **~7 million** inequalities
 
-- a `Potential` class, which assigns a value to a normalized work function
-- optionally a search procedure, usually `main(args)`, which proposes hyperparameters for that `Potential`
+Using the tools in this repository together with coding agents such as OpenAI Codex, we discovered a potential with:
 
-Evaluation is performed on precomputed metric instances built from finite work-function graphs. The main benchmark target is minimizing `violations_k`, with `1.0` as the perfect product-style score across metrics.
+* **3 violations** out of **~7 million** inequalities
 
-Two evaluator styles are supported:
+This problem is an extremely challenging **optimization task**:
 
-- non-legacy evaluation, where the candidate program returns `potential_kwargs` and the evaluator instantiates `Potential`
-- legacy evaluation, where candidate components are split across `PotentialFamily`, `Potential`, and `SearchEvaluator`
+* The search space is vast
+* Improvements are incremental and rare
+* Each evaluation requires checking millions of inequalities
 
-The benchmark is intentionally aimed at iterative discovery rather than full formal proof production:
+These factors make large-scale exploration computationally and algorithmically demanding.
 
-- dense automatic feedback comes from checking many explicit inequalities
-- solved `k=3` regimes serve as calibration targets
-- open `k=4` regimes remain hard enough that improved candidates are already mathematically interesting
+---
 
-For new work, prefer the non-legacy evaluator. It is less restrictive and more robust operationally, while leaving parallelization decisions to the agent or candidate code instead of relying on brittle Ray-cluster orchestration.
+## Target Audience
 
-## Quick Installation
+This repository may be useful as:
+
+1. **Research tooling**
+   For researchers exploring potential-function approaches to the $$k$$-server problem, particularly the open circle $$k = 4$$ case and beyond.
+
+2. **AI discovery benchmark**
+   As a benchmark for **agentic, code-based mathematical discovery**, where progress is measured via automatically computed violations.
+
+---
+
+## Core Concepts
+
+### Candidate (Potential Function)
+
+A candidate is typically implemented as a Python class defining a potential function:
+
+```python
+class Potential:
+
+  def __init__(
+    self,
+    context,   # k-server parameters (metric space, number of servers, etc.)
+    **kwargs   # optional hyperparameters
+  ):
+    self.context = context
+    ...
+
+  def __call__(
+    self,
+    wf: np.ndarray   # representation of a graph node
+  ) -> float:
+    ...
+```
+
+See [`examples`](./examples/README.md) for both human-designed and AI-discovered potentials.
+
+---
+
+### Evaluator
+
+The evaluator is a Python program that:
+
+* Computes potential values
+* Checks inequalities over a precomputed dataset of instances (see [`metrics/`](./metrics/README.md))
+
+Each instance corresponds to a metric space $$M$$ and defines a graph $$(V, E)$$, where:
+
+* Nodes $$v \in V$$ are parameterized by vectors $$w \in \mathbb{R}^d$$
+* Edges $$(u, v) \in E$$ are parameterized by requests $$r \in M$$
+
+The goal is to find a potential $$\Phi$$ such that for every edge $$(u, v, r)$$:
+
+$$
+\Phi(v) - \Phi(u) \geq \nabla(u, r, c),
+$$
+
+where:
+
+$$
+\nabla(u, r, c) =
+\max_X \big(w_v(X) - w_u(X)\big) - (c + 1)\Big(\min_X w_v(X) - \min_X w_u(X)\Big).
+$$
+
+The evaluator reports:
+
+* Number of violations
+* Additional diagnostic statistics
+
+See [`tools/`](./tools/README.md) for details.
+
+---
+
+## Quickstart
+
+### Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Quickstart
+This also installs the [`k-servers`](./k-servers/README.md) package.
+
+---
 
 ### Coding Agents
 
-To prepare a target workspace for a coding agent, run:
+To prepare a workspace for a coding agent:
 
 ```bash
 bash agents/setup.sh <agent-name> <target-dir>
 ```
 
-At the moment, only `codex` is supported as `<agent-name>`.
+Currently supported:
 
-Then move into the target directory, start the coding agent, and give it a trivial first task such as implementing a potential that always returns zero:
+* `codex`
 
-```bash
-cd <target-dir>
-<coding-agent>
-```
+After setup:
 
-For example, with Codex:
+1. Enter the target directory
+2. Start the agent
+3. Run a simple sanity check (e.g., implement a constant-zero potential)
 
-```bash
-bash agents/setup.sh codex /tmp/k-server-codex
-cd /tmp/k-server-codex
-codex
-```
-
-and then ask it to develop a very simple potential that always returns zero.
+---
 
 ### Discovery Agents
 
-If you are building or testing your own discovery agent, the main non-legacy evaluator entrypoint is:
+For discovery systems (e.g., AlphaEvolve), the main evaluator entry point is:
 
 ```bash
-PYTHONPATH="${PWD}/k-servers/src" python tools/evaluator/evaluate.py --help
+tools/evaluator/evaluate.py
 ```
 
-The evaluator accepts these core inputs:
+Key parameters:
 
-- `--program_path`: candidate program to evaluate
-- `--results_dir`: directory where `correct.json` and `metrics.json` are written
-- `--metrics_names`: comma-separated metric filenames
+* `--program_path`: path to the candidate implementation
+* `--metrics_names`: comma-separated list of metric files
 
-Those options can also be supplied through the corresponding `K_SERVER_EVALUATE_*` environment variables.
+See:
 
-## Common Workflows
+* [`tools/evaluator/`](./tools/evaluator/)
+* [`agents/docs/`](./agents/docs/)
 
-### Run a released sweep
+---
+
+### Tasks, Hints, and Presets
+
+The [`tasks/`](./tasks) directory contains reusable task definitions, including:
+
+* Goals
+* Implementation constraints
+* Hints to reduce the search space
+
+Predefined tasks:
+
+* [k3-warmup](./tasks/k3-warmup)
+* [k4-general-task](./tasks/k4-general-task)
+
+Here’s a clean **Docker subsection** you can drop into your Quickstart section. I aligned it with the tone/style of the rest of the README and added a bit of clarity around what each step does.
+
+---
+
+### Docker
+
+You can build a fully reproducible environment using Docker.
+
+#### Build images
 
 ```bash
-cd experiments/best-of-n
-./run-sweep.sh canonical-potential-just-potential-family-k4-general-task
+docker build -t k-server-env:latest -f docker/Dockerfile .
+
+docker build -t codex-k-server:latest -f agents/codex/Dockerfile .
 ```
 
-Each method-level `run-sweep.sh` script:
+* `k-server-env`: base environment with dependencies and tooling
+* `codex-k-server`: environment configured for running Codex agents
 
-1. resolves the requested sweep directory
-2. regenerates local task assets with `generate_task.py`
-3. launches the derived `sweep.sh` through [`experiments/run_grid.py`](./experiments/run_grid.py)
-
-### Run the evaluator directly
+#### Run Codex agent container
 
 ```bash
-cd k-server-bench
-PYTHONPATH="${PWD}/k-servers/src" python tools/evaluator/evaluate.py --help
+docker run --rm -it \
+  -v $HOME/.codex/auth.json:/run/secrets/codex-auth.json \
+  codex-k-server:latest
 ```
+This mounts your Codex authentication file into the container and launches an interactive session.
 
-### Run a concrete example
+---
 
-```bash
-bash examples/unifying_potential/evaluate_all_k4.sh
-```
+If you want, I can also:
+
+* add GPU support (`--gpus all`)
+* wire this into `docker-compose`
+* or make it CI-ready (GitHub Actions)
+
+
+---
 
 ## Documentation Guide
 
-Start here for detail:
+Start here:
 
-- [`docs/concepts.md`](./docs/concepts.md): work functions, potentials, metrics, and scoring
-- [`docs/task-model.md`](./docs/task-model.md): how task pieces compose into released sweeps
-- [`docs/evaluators.md`](./docs/evaluators.md): legacy vs non-legacy evaluator contracts
-- [`docs/experiments.md`](./docs/experiments.md): how released sweeps are structured and run
+* [`docs/concepts.md`](./docs/concepts.md): core mathematical concepts and scoring
+* [`docs/task-model.md`](./docs/task-model.md): task composition and sweeps
+* [`docs/evaluators.md`](./docs/evaluators.md): evaluator interfaces
+* [`docs/experiments.md`](./docs/experiments.md): experiment structure
 
-## Status
+---
 
-This repository contains released benchmark infrastructure. Sweep-local assets are generated from shared sources under `tasks/`, while the evaluators and the `kserver` package remain the stable execution layer.
+## Repository Structure
+
+* [`docs/`](./docs/README.md): detailed documentation
+* [`k-servers/`](./k-servers/README.md): core Python package
+* [`tasks/`](./tasks/README.md): task definitions and hints
+* [`experiments/`](./experiments/README.md): experiment configurations
+* [`tools/`](./tools/README.md): evaluators and utilities
+* [`metrics/`](./metrics/README.md): benchmark datasets
+* [`examples/`](./examples/README.md): example runs and candidates
+* [`tests/`](./tests/README.md): basic validation tests
+* [`agents/`](./agents/README.md): agent integrations
+* [`docker/`](./docker/README.md): reproducible environments
+
+---
+
+## Citation
+
+TODO
+
