@@ -109,13 +109,17 @@ See [`tools/`](./tools/README.md) for details.
 
 ---
 
+Here’s a polished and cleaned-up version of your **Quickstart** section. I improved flow, fixed grammar, clarified agent/evaluator separation, and tightened phrasing while keeping your intent intact.
+
+---
+
 ## Quickstart
 
-#### Git LFS (required for metrics)
+### Git LFS (required for metrics)
 
 This repository uses Git LFS to store large precomputed metric datasets.
 
-Before cloning the repository, make sure Git LFS is installed and initialized:
+Before cloning the repository, ensure Git LFS is installed and initialized:
 
 ```bash
 git lfs install
@@ -124,64 +128,107 @@ cd <repo>
 git lfs pull
 ```
 
-Without Git LFS, the metric files in [`metrics/`](./metrics/README.md) will not be downloaded correctly, and the evaluator will not function.
+Without Git LFS, the files in [`metrics/`](./metrics/README.md) will not be downloaded correctly, and the evaluator will not function.
+
+---
 
 ### Installation
 
-The evaluator code needs [`k-servers`](./k-servers/README.md) that can be installed in the separate environment from the agents.
+The evaluator depends on the [`k-servers`](./k-servers/README.md) package, which can be installed in an environment **separate from the agent**:
 
-```
+```bash
 pip install -e ./k-servers
 ```
+
+> This separation is recommended when running agents in isolated or containerized environments.
 
 ---
 
 ### Coding Agents
 
-To prepare a workspace with the benchmark docs and source papers:
+To prepare a workspace with benchmark documentation and source materials:
 
 ```bash
 bash agents/setup.sh <target-dir>
 ```
 
-This shared setup is agent-agnostic. It only copies the benchmark-facing docs and papers into the target directory.
+This setup is **agent-agnostic** and copies only the necessary benchmark-facing docs and papers into the target directory.
 
-Evaluator can be access either by simply asking the coding agent to run `/abs/path/to/tools/evaluator/evaluate.py` whenever it needs to evaluate the developed potential (can be added into AGENTS.md/CLAUDE.md).
+---
 
-Another option is to use MCP. For Codex, use (needs `pip install tomli tomli_w mcp`):
+Got it—that makes the structure much cleaner and more general. Here’s a polished rewrite of that section with MCP treated as a first-class alternative:
+
+---
+
+#### Running the evaluator
+
+You have two main options:
+
+**1. Direct invocation (simplest)**
+Instruct your coding agent to run:
+
+```
+/abs/path/to/tools/evaluator/evaluate.py
+```
+
+This can be added to agent context files (e.g., `AGENTS.md`, `CLAUDE.md`) so the agent can call the evaluator when needed.
+
+---
+
+**2. MCP integration**
+
+Alternatively, you can expose the evaluator via MCP using the entrypoint:
+
+```
+tools/evaluator/evaluate_mcp_server.py
+```
+
+This allows agents to interact with the evaluator as a tool rather than invoking it directly.
+
+For OpenAI Codex, we provide a convenience setup script that performs both:
+
+* the base workspace setup
+* MCP configuration
 
 ```bash
+pip install tomli tomli_w mcp
 bash agents/codex/setup.sh <target-dir>
 ```
 
-that does basic and Codex-specific MCP setup.
+For additional details (including split-environment setups), see [`agents/codex/README.md`](./agents/codex/README.md).
 
-MCP-specific setup details, including environment-split scenarios, are documented in [`agents/codex/README.md`](./agents/codex/README.md).
+---
 
+### Sanity Check
 
 After setup:
 
 1. Enter the target directory
 2. Start the agent
-3. Run a simple sanity check (e.g., implement a constant-zero potential)
+3. Run a simple test task
+
+Example prompt:
 
 ```text
-Implement a very simple potential that returns always zero and evaluate it on circle_k3_m6.pickle
+Implement a very simple potential that always returns zero and evaluate it on circle_k3_m6.pickle
 ```
 
-The output should be:
+Expected output (truncated):
 
-```
-"correct": true,
-      "error": null,
-      "combined_score": 0.7285714285714286,
-      "public": {
-        "0/violations_k": 570,
-        "0/violations_k_score": 0.7285714285714286,
-...
+```json
+{
+  "correct": true,
+  "error": null,
+  "combined_score": 0.7285714285714286,
+  "public": {
+    "0/violations_k": 570,
+    "0/violations_k_score": 0.7285714285714286
+  }
+}
 ```
 
 ---
+
 
 ### Discovery Agents
 
@@ -243,15 +290,6 @@ docker run --rm -it \
   codex-k-server:latest
 ```
 This mounts your Codex authentication file into the container and launches an interactive session.
-
----
-
-If you want, I can also:
-
-* add GPU support (`--gpus all`)
-* wire this into `docker-compose`
-* or make it CI-ready (GitHub Actions)
-
 
 ---
 
