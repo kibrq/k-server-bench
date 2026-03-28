@@ -23,6 +23,16 @@ def parse_args(*args, **kwargs):
     parser.add_argument("--tool-timeout-sec", type=int, default=3600, help="Tool timeout in seconds")
     parser.add_argument("--mcp-server-name", type=str, default="evaluate", help="Name of the MCP server")
     parser.add_argument("--mcp-server-command", type=str, default="python3", help="Command to run the MCP server")
+    parser.add_argument(
+        "--args",
+        type=str,
+        nargs="+",
+        default=None,
+        help=(
+            "Full MCP server 'args' list. Defaults to [<evaluate_mcp_server.py>]. "
+            "If you override this, do not forget to include the evaluator MCP executable path yourself."
+        ),
+    )
     parser.add_argument("--create-config", action="store_true", help="Create a config.toml file if it does not exist")
     parser.add_argument("--override-mcp-config", action="store_true", help="Override the MCP server config if it already exists")
     parser.add_argument("--env", type=str, default=[], nargs="+", help="Additional environment variables to set for the MCP server. (e.g. --env K_SERVER_EVALUATE_METRICS_NAMES=... --env K_SERVER_EVALUATE_SEARCH_TIMEOUT=...)")
@@ -47,7 +57,6 @@ def main():
     else:
         args.evaluator_home = os.path.abspath(os.path.join(args.k_server_bench_home, args.evaluator_home))
     args.codex_home = os.path.abspath(args.codex_home)
-    evaluator_path = os.path.join(args.evaluator_home, args.evaluator_name)
     mcp_executable_path = os.path.join(args.evaluator_home, args.mcp_executable_name)
 
     print(args)
@@ -87,7 +96,7 @@ def main():
         "command": args.mcp_server_command,
         "startup_timeout_sec": args.startup_timeout_sec,
         "tool_timeout_sec": args.tool_timeout_sec,
-        "args": [mcp_executable_path],
+        "args": args.args if args.args is not None else [mcp_executable_path],
         "env": mcp_env
     }
 
