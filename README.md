@@ -260,10 +260,8 @@ The [`tasks/`](./tasks) directory contains reusable task definitions, including:
 
 Predefined tasks:
 
-* [k3-warmup](./tasks/k3-warmup)
+* [k3-stress-test](./tasks/k3-stress-test)
 * [k4-general-task](./tasks/k4-general-task)
-
-Here’s a clean **Docker subsection** you can drop into your Quickstart section. I aligned it with the tone/style of the rest of the README and added a bit of clarity around what each step does.
 
 ---
 
