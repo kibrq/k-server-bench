@@ -1,6 +1,6 @@
 # k-server-bench
 
-This project aims to **automate and accelerate progress** toward the [k-server conjecture](https://en.wikipedia.org/wiki/K-server_problem), a central problem in competitive analysis, using **open-ended AI-driven discovery**.
+This project aims to **automate and accelerate progress** toward the [k-server conjecture](https://en.wikipedia.org/wiki/K-server_problem), a central open problem in competitive analysis, using **open-ended AI-driven discovery**.
 
 The core task is to discover a **potential function** that satisfies a large, graph-structured system of linear inequalities. The evaluation procedure is **sound but incomplete**:
 
@@ -149,6 +149,8 @@ bash agents/setup.sh <agent-name> <target-dir>
 Currently supported:
 
 * `codex`
+
+> See [this](agents/README.md) if your agent runs in a different environment.
 
 After setup:
 
