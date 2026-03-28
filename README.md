@@ -11,7 +11,7 @@ Nevertheless, a candidate that satisfies all constraints would provide strong ev
 
 As such, a successful candidate would already represent a meaningful contribution—and could potentially lead to a full theoretical result when paired with a formal proof.
 
-For additional mathematical background, see the [accompanying paper](TODO).
+For additional mathematical background, see the documentation under [`docs/`](./docs/README.md). A paper link can be added here once the public version is finalized.
 
 ---
 
@@ -21,7 +21,7 @@ Among previously human-discovered solutions for the open circle case with $$k = 
 
 * **17 violations** out of **~7 million** inequalities
 
-Using the tools in this repository together with coding agents such as OpenAI Codex, we discovered a potential with:
+Using the tools in this repository together with coding agents such as Codex, we discovered a potential with:
 
 * **3 violations** out of **~7 million** inequalities
 
@@ -107,12 +107,6 @@ The evaluator reports:
 
 See [`tools/`](./tools/README.md) for details.
 
----
-
-Here’s a polished and cleaned-up version of your **Quickstart** section. I improved flow, fixed grammar, clarified agent/evaluator separation, and tightened phrasing while keeping your intent intact.
-
----
-
 ## Quickstart
 
 ### Git LFS (required for metrics)
@@ -154,12 +148,6 @@ bash agents/setup.sh <target-dir>
 
 This setup is **agent-agnostic** and copies only the necessary benchmark-facing docs and papers into the target directory.
 
----
-
-Got it—that makes the structure much cleaner and more general. Here’s a polished rewrite of that section with MCP treated as a first-class alternative:
-
----
-
 #### Running the evaluator
 
 You have two main options:
@@ -185,7 +173,7 @@ tools/evaluator/evaluate_mcp_server.py
 
 This allows agents to interact with the evaluator as a tool rather than invoking it directly.
 
-For OpenAI Codex, we provide a convenience setup script that performs both:
+For Codex, we provide a convenience setup script that performs both:
 
 * the base workspace setup
 * MCP configuration
@@ -314,9 +302,3 @@ Start here:
 * [`tests/`](./tests/README.md): basic validation tests
 * [`agents/`](./agents/README.md): agent integrations
 * [`docker/`](./docker/README.md): reproducible environments
-
----
-
-## Citation
-
-TODO

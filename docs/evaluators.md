@@ -13,6 +13,8 @@ In general, prefer the non-legacy evaluator.
 
 The main reason is that it is less restrictive and operationally more robust. The legacy path depends on Ray-backed evaluation patterns, and in practice both "one shared Ray cluster for parallel evaluations" and "multiple Ray clusters per run" tend to be fragile. The non-legacy path avoids baking that orchestration into the benchmark contract and instead puts the responsibility for parallelization inside the candidate search procedure.
 
+Historical note: the `k=3` experiments reported in the paper were run with the legacy evaluator. That is useful for reproducing the paper setup, but it should not be read as a recommendation for new experiments.
+
 ## Non-Legacy Evaluator
 
 The non-legacy evaluator expects a candidate module with a `Potential` class and usually a `main(args)` search procedure.
