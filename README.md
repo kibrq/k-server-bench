@@ -111,7 +111,24 @@ See [`tools/`](./tools/README.md) for details.
 
 ## Quickstart
 
+#### Git LFS (required for metrics)
+
+This repository uses Git LFS to store large precomputed metric datasets.
+
+Before cloning the repository, make sure Git LFS is installed and initialized:
+
+```bash
+git lfs install
+git clone <repo-url>
+cd <repo>
+git lfs pull
+```
+
+Without Git LFS, the metric files in [`metrics/`](./metrics/README.md) will not be downloaded correctly, and the evaluator will not function.
+
 ### Installation
+
+After cloning the repo:
 
 ```bash
 pip install -r requirements.txt
