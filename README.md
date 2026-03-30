@@ -159,7 +159,7 @@ Instruct your coding agent to run:
 /abs/path/to/tools/evaluator/evaluate.py
 ```
 
-This can be added to agent context files (e.g., `AGENTS.md`, `CLAUDE.md`) so the agent can call the evaluator when needed.
+This can be added to agent context files (e.g., `AGENTS.md`, `CLAUDE.md`) so that the agent can call the evaluator when needed.
 
 ---
 
@@ -185,15 +185,23 @@ bash agents/codex/setup.sh <target-dir>
 
 For additional details (including split-environment setups), see [`agents/codex/README.md`](./agents/codex/README.md).
 
+We also provide an additional [`autoresearch`](https://github.com/karpathy/autoresearch) layering that can be applied on top of an existing workspace setup. It adds an `AGENTS.md` file plus an `autoresearch`-style `program.md`.
+
+```bash
+bash agents/autoresearch/setup.sh <target-dir>
+```
+
+See [`agents/autoresearch/README.md`](./agents/autoresearch/README.md).
+
 ---
 
 ### Sanity Check
 
 After setup:
 
-1. Enter the target directory
-2. Start the agent
-3. Run a simple test task
+1. Enter the target directory.
+2. Start the agent.
+3. Run a simple test task.
 
 Example prompt:
 
@@ -262,10 +270,17 @@ You can build a fully reproducible environment using Docker.
 ```bash
 docker build -t k-server-env:latest -f docker/Dockerfile .
 
+docker build -t generic-k-server:latest -f agents/Dockerfile .
+```
+
+Or, if you specifically want the Codex image:
+
+```bash
 docker build -t codex-k-server:latest -f agents/codex/Dockerfile .
 ```
 
 * `k-server-env`: base environment with dependencies and tooling
+* `generic-k-server`: base environment plus a generic coding-agent workspace bootstrap, which you can use for tools such as Claude, for example
 * `codex-k-server`: environment configured for running Codex agents
 
 #### Run Codex agent container
@@ -276,6 +291,14 @@ docker run --rm -it \
   codex-k-server:latest
 ```
 This mounts your Codex authentication file into the container and launches an interactive session.
+
+
+To layer autoresearch into the same image, invoke its entrypoint directly:
+
+```bash
+docker run --rm -it <BASE_IMAGE> /home/kserver/k-server-bench/agents/autoresearch/entrypoint.sh
+```
+where `<BASE_IMAGE>` might be `codex-k-server:latest` or `generic-k-server:latest`.
 
 ---
 

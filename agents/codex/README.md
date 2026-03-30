@@ -17,6 +17,18 @@ The setup split is:
 - [`../setup.sh`](../setup.sh): generic workspace preparation only
 - [`setup.sh`](./setup.sh): generic preparation plus Codex-specific MCP wiring
 
+The Docker image now chains through the base `k-server-env` entrypoint first, then runs [`entrypoint.sh`](./entrypoint.sh), and finally launches Codex by default.
+
+## Layering Autoresearch
+
+You can add the autoresearch workflow on top of an existing Codex workspace:
+
+```bash
+bash agents/autoresearch/setup.sh <target-dir>
+```
+
+That keeps the Codex MCP setup in place and adds `program.md`, initializes git if needed, and seeds `main.py` only when it does not already exist.
+
 ## Environment Split Scenarios
 
 ### MCP Runs In Another Environment Than The Agent

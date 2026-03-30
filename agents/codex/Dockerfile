@@ -30,4 +30,5 @@ RUN chmod +x /home/kserver/k-server-bench/agents/codex/entrypoint.sh
 
 WORKDIR /home/kserver/workspace
 
-CMD ["/home/kserver/k-server-bench/agents/codex/entrypoint.sh", "codex", "--dangerously-bypass-approvals-and-sandbox"]
+ENTRYPOINT ["/opt/entrypoint.sh", "/home/kserver/k-server-bench/agents/codex/entrypoint.sh"]
+CMD ["codex", "--dangerously-bypass-approvals-and-sandbox"]
