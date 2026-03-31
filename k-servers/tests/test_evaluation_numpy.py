@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from kserver.evaluation import evaluation as evaluation_module
 from kserver.context.numpy_wf_context import WFContext
 from kserver.evaluation import NumpyKServerInstance, compute_potential_stats
 from kserver.potential.canonical_potential import Potential as CanonicalPotential
@@ -143,6 +144,121 @@ def test_compute_potential_stats_mp_backend_on_small_instance() -> None:
 
     assert stats.metrics["total_nodes"] == 2
     assert stats.metrics["total_edges"] == 1
+
+
+def test_batch_compute_potential_mp_returns_partial_results_on_timeout(monkeypatch) -> None:
+    wfs = [
+        np.asarray([0.0, 1.0]),
+        np.asarray([1.0, 2.0]),
+        np.asarray([2.0, 3.0]),
+    ]
+    partial_results = [
+        (evaluation_module._wf_key(wfs[0]), 1.0),
+        (evaluation_module._wf_key(wfs[1]), 3.0),
+    ]
+
+    class FakeIterator:
+        def __init__(self, results):
+            self._results = list(results)
+            self._index = 0
+
+        def __next__(self):
+            if self._index >= len(self._results):
+                raise StopIteration
+            result = self._results[self._index]
+            self._index += 1
+            return result
+
+        def next(self, timeout=None):
+            del timeout
+            if self._index >= len(self._results):
+                raise evaluation_module.mp.TimeoutError
+            result = self._results[self._index]
+            self._index += 1
+            return result
+
+    fake_pool = None
+
+    class FakePool:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+            self.terminated = False
+            self.closed = False
+            self.joined = False
+
+        def imap_unordered(self, fn, items, chunksize=1):
+            del fn, items, chunksize
+            return FakeIterator(partial_results)
+
+        def terminate(self):
+            self.terminated = True
+
+        def close(self):
+            self.closed = True
+
+        def join(self):
+            self.joined = True
+
+    def make_pool(*args, **kwargs):
+        nonlocal fake_pool
+        fake_pool = FakePool(*args, **kwargs)
+        return fake_pool
+
+    monkeypatch.setattr(evaluation_module.mp, "Pool", make_pool)
+    monkeypatch.setattr(evaluation_module.time, "sleep", lambda _: None)
+
+    cache = evaluation_module.batch_compute_potential_mp(
+        wfs,
+        potential_fn=lambda wf: float(np.sum(wf)),
+        n_processes=2,
+        timeout=0.1,
+        chunk_size=1,
+    )
+
+    assert cache == {
+        evaluation_module._wf_key(wfs[0]): 1.0,
+        evaluation_module._wf_key(wfs[1]): 3.0,
+    }
+    assert fake_pool is not None
+    assert fake_pool.terminated is True
+    assert fake_pool.joined is True
+    assert fake_pool.closed is False
+
+
+def test_compute_potential_stats_mp_timeout_keeps_partial_results(monkeypatch) -> None:
+    instance = _build_instance()
+    expected_keys = {evaluation_module._wf_key(wf) for wf in instance.node_wf_norm}
+
+    def fake_batch_compute_potential_mp(wfs, potential_fn, **kwargs):
+        assert kwargs["timeout"] == 0.1
+        cache = {}
+        for wf in wfs:
+            key = evaluation_module._wf_key(wf)
+            if key in expected_keys:
+                cache[key] = potential_fn(wf)
+        return cache
+
+    def potential_factory(context):
+        del context
+        return lambda wf: float(np.min(wf))
+
+    monkeypatch.setattr(evaluation_module, "batch_compute_potential_mp", fake_batch_compute_potential_mp)
+
+    stats = compute_potential_stats(
+        potential_factory,
+        instance,
+        compute_potential_backend="mp",
+        compute_potential_kwargs={"timeout": 0.1, "n_processes": 2, "chunk_size": 1},
+        opt_upper_bound_estimate_sample_size=None,
+        include_info_columns=False,
+    )
+
+    assert stats.metrics["total_nodes"] == 2
+    assert stats.metrics["total_edges"] == 1
+    assert stats.metrics["unprocessed_normalized_edges"] == 0
+    assert stats.metrics["unprocessed_renormalized_edges"] == 1
+    assert stats.df_nodes["potential"].notna().all()
+    assert stats.df_edges["v_renorm_potential"].isna().all()
 
 
 def test_compute_potential_stats_robustness_uses_custom_idx_to_config() -> None:

@@ -94,19 +94,15 @@ def batch_compute_potential_simple(
     return cache
 
 
-_stop_event = None
 _potential_fn = None
 
 
-def _init_worker(stop_event, potential_fn):
-    global _stop_event, _potential_fn
-    _stop_event = stop_event
+def _init_worker(potential_fn):
+    global _potential_fn
     _potential_fn = potential_fn
 
 
 def _compute_one(wf):
-    if _stop_event.is_set():
-        raise StopIteration
     return _wf_key(wf), _potential_fn(wf)
 
 
@@ -117,28 +113,36 @@ def batch_compute_potential_mp(
     timeout=None,
     chunk_size=50,
 ):
-    mgr = mp.Manager()
-    stop_event = mgr.Event()
+    results = []
+    start_time = time.time()
 
     pool = mp.Pool(
         processes=n_processes,
         initializer=_init_worker,
-        initargs=(stop_event, potential_fn),
+        initargs=(potential_fn,),
     )
-    async_res = pool.map_async(_compute_one, wfs, chunksize=chunk_size)
+    async_iter = pool.imap_unordered(_compute_one, wfs, chunksize=chunk_size)
 
     try:
-        if timeout is None:
-            results = async_res.get()
-        else:
-            results = async_res.get(timeout=timeout)
+        while True:
+            if timeout is None:
+                results.append(next(async_iter))
+                continue
+
+            remaining = timeout - (time.time() - start_time)
+            if remaining <= 0:
+                raise mp.TimeoutError
+            results.append(async_iter.next(timeout=remaining))
+    except StopIteration:
+        pass
     except mp.TimeoutError:
-        stop_event.set()
         time.sleep(0.2)
         pool.terminate()
-        results = async_res._value
     finally:
-        pool.close()
+        if timeout is None:
+            pool.close()
+        else:
+            pool.terminate()
         pool.join()
 
     return {key: value for key, value in results if key is not None}
