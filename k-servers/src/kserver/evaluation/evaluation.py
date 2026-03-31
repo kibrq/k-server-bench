@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import multiprocessing as mp
 import pickle
+import queue
 import time
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -95,15 +96,44 @@ def batch_compute_potential_simple(
 
 
 _potential_fn = None
+_stop_event = None
 
 
-def _init_worker(potential_fn):
-    global _potential_fn
+def _init_worker(stop_event, potential_fn):
+    global _potential_fn, _stop_event
+    _stop_event = stop_event
     _potential_fn = potential_fn
 
 
 def _compute_one(wf):
+    if _stop_event.is_set():
+        raise StopIteration
     return _wf_key(wf), _potential_fn(wf)
+
+
+def _split_wfs_for_workers(wfs, n_processes):
+    if len(wfs) == 0:
+        return []
+    n_workers = max(1, min(int(n_processes), len(wfs)))
+    base, extra = divmod(len(wfs), n_workers)
+    chunks = []
+    start = 0
+    for worker_idx in range(n_workers):
+        stop = start + base + (1 if worker_idx < extra else 0)
+        chunks.append(wfs[start:stop])
+        start = stop
+    return chunks
+
+
+def _compute_chunk_to_queue(wfs_chunk, stop_event, potential_fn, result_queue):
+    _init_worker(stop_event, potential_fn)
+    try:
+        for wf in wfs_chunk:
+            if _stop_event.is_set():
+                break
+            result_queue.put((_wf_key(wf), _potential_fn(wf)))
+    finally:
+        result_queue.put(None)
 
 
 def batch_compute_potential_mp(
@@ -113,39 +143,65 @@ def batch_compute_potential_mp(
     timeout=None,
     chunk_size=50,
 ):
+    del chunk_size
+    if len(wfs) == 0:
+        return {}
+
+    stop_event = mp.Event()
+    chunks = _split_wfs_for_workers(wfs, n_processes)
+    queues = [mp.Queue() for _ in chunks]
+    processes = [
+        mp.Process(
+            target=_compute_chunk_to_queue,
+            args=(chunk, stop_event, potential_fn, result_queue),
+        )
+        for chunk, result_queue in zip(chunks, queues)
+    ]
+
+    for proc in processes:
+        proc.start()
+
     results = []
-    start_time = time.time()
-
-    pool = mp.Pool(
-        processes=n_processes,
-        initializer=_init_worker,
-        initargs=(potential_fn,),
-    )
-    async_iter = pool.imap_unordered(_compute_one, wfs, chunksize=chunk_size)
-
-    try:
-        while True:
-            if timeout is None:
-                results.append(next(async_iter))
+    finished = [False] * len(queues)
+    deadline = None if timeout is None else time.time() + timeout
+    while not all(finished):
+        made_progress = False
+        for idx, result_queue in enumerate(queues):
+            if finished[idx]:
                 continue
+            try:
+                wait_timeout = 0.01
+                if deadline is not None:
+                    remaining = deadline - time.time()
+                    if remaining <= 0:
+                        stop_event.set()
+                        deadline = None
+                    else:
+                        wait_timeout = min(wait_timeout, remaining)
+                item = result_queue.get(timeout=wait_timeout)
+            except queue.Empty:
+                continue
+            if item is None:
+                finished[idx] = True
+            else:
+                results.append(item)
+            made_progress = True
+        if not made_progress and deadline is None:
+            time.sleep(0.01)
 
-            remaining = timeout - (time.time() - start_time)
-            if remaining <= 0:
-                raise mp.TimeoutError
-            results.append(async_iter.next(timeout=remaining))
-    except StopIteration:
-        pass
-    except mp.TimeoutError:
-        time.sleep(0.2)
-        pool.terminate()
-    finally:
-        if timeout is None:
-            pool.close()
-        else:
-            pool.terminate()
-        pool.join()
+    stop_event.set()
+    for proc in processes:
+        proc.join(timeout=0.1)
+    for proc in processes:
+        if proc.is_alive():
+            proc.terminate()
+    for proc in processes:
+        proc.join()
+    for result_queue in queues:
+        result_queue.close()
+        result_queue.join_thread()
 
-    return {key: value for key, value in results if key is not None}
+    return {p[0]: p[1] for p in results}
 
 
 def _estimate_opt_upper_bound(

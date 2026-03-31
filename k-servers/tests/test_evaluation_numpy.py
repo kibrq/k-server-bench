@@ -152,59 +152,83 @@ def test_batch_compute_potential_mp_returns_partial_results_on_timeout(monkeypat
         np.asarray([1.0, 2.0]),
         np.asarray([2.0, 3.0]),
     ]
-    partial_results = [
+    worker_0_results = [
         (evaluation_module._wf_key(wfs[0]), 1.0),
         (evaluation_module._wf_key(wfs[1]), 3.0),
     ]
+    worker_1_partial_results = [
+        (evaluation_module._wf_key(wfs[2]), 5.0),
+    ]
 
-    class FakeIterator:
-        def __init__(self, results):
-            self._results = list(results)
-            self._index = 0
+    class FakeStopEvent:
+        def __init__(self):
+            self._is_set = False
 
-        def __next__(self):
-            if self._index >= len(self._results):
-                raise StopIteration
-            result = self._results[self._index]
-            self._index += 1
-            return result
+        def is_set(self):
+            return self._is_set
 
-        def next(self, timeout=None):
-            del timeout
-            if self._index >= len(self._results):
-                raise evaluation_module.mp.TimeoutError
-            result = self._results[self._index]
-            self._index += 1
-            return result
+        def set(self):
+            self._is_set = True
 
-    fake_pool = None
-
-    class FakePool:
-        def __init__(self, *args, **kwargs):
-            del args, kwargs
-            self.terminated = False
+    class FakeQueue:
+        def __init__(self, items):
+            self._items = list(items)
             self.closed = False
-            self.joined = False
+            self.join_thread_called = False
 
-        def imap_unordered(self, fn, items, chunksize=1):
-            del fn, items, chunksize
-            return FakeIterator(partial_results)
-
-        def terminate(self):
-            self.terminated = True
+        def get(self, timeout=None):
+            del timeout
+            if not self._items:
+                raise evaluation_module.queue.Empty
+            return self._items.pop(0)
 
         def close(self):
             self.closed = True
 
-        def join(self):
-            self.joined = True
+        def join_thread(self):
+            self.join_thread_called = True
 
-    def make_pool(*args, **kwargs):
-        nonlocal fake_pool
-        fake_pool = FakePool(*args, **kwargs)
-        return fake_pool
+    class FakeProcess:
+        def __init__(self, target, args):
+            del target, args
+            self.started = False
+            self.join_calls = 0
+            self.terminated = False
+            self.alive = True
 
-    monkeypatch.setattr(evaluation_module.mp, "Pool", make_pool)
+        def start(self):
+            self.started = True
+
+        def join(self, timeout=None):
+            del timeout
+            self.join_calls += 1
+            self.alive = False
+
+        def is_alive(self):
+            return self.alive
+
+        def terminate(self):
+            self.terminated = True
+            self.alive = False
+
+    fake_stop_event = FakeStopEvent()
+    fake_queues = [
+        FakeQueue(worker_0_results + [None]),
+        FakeQueue(worker_1_partial_results + [None]),
+    ]
+    fake_processes = []
+
+    def make_queue():
+        return fake_queues.pop(0)
+
+    def make_process(*args, **kwargs):
+        proc = FakeProcess(*args, **kwargs)
+        fake_processes.append(proc)
+        return proc
+
+    monkeypatch.setattr(evaluation_module.mp, "Event", lambda: fake_stop_event)
+    monkeypatch.setattr(evaluation_module.mp, "Queue", make_queue)
+    monkeypatch.setattr(evaluation_module.mp, "Process", make_process)
     monkeypatch.setattr(evaluation_module.time, "sleep", lambda _: None)
 
     cache = evaluation_module.batch_compute_potential_mp(
@@ -218,11 +242,12 @@ def test_batch_compute_potential_mp_returns_partial_results_on_timeout(monkeypat
     assert cache == {
         evaluation_module._wf_key(wfs[0]): 1.0,
         evaluation_module._wf_key(wfs[1]): 3.0,
+        evaluation_module._wf_key(wfs[2]): 5.0,
     }
-    assert fake_pool is not None
-    assert fake_pool.terminated is True
-    assert fake_pool.joined is True
-    assert fake_pool.closed is False
+    assert fake_stop_event.is_set() is True
+    assert len(fake_processes) == 2
+    assert all(proc.started for proc in fake_processes)
+    assert all(proc.join_calls >= 1 for proc in fake_processes)
 
 
 def test_compute_potential_stats_mp_timeout_keeps_partial_results(monkeypatch) -> None:
