@@ -25,6 +25,8 @@ Using the tools in this repository together with coding agents such as Codex, we
 
 * **3 violations** out of **~7 million** inequalities
 
+One reproducible path to that result is the staged search in [`examples/search_n7_async_pipeline/`](./examples/search_n7_async_pipeline/): a Codex-developed, human-guided coefficient search for a fixed `n=7` index matrix. It first filters candidates on `circle_k4_m6`, then on hard `circle_taxi_k4_m6` edges, then on timeout-limited random taxi edges, and finally runs full taxi evaluation. With random candidates at the beginning, this procedure can find a 3-violation coefficient vector in roughly 20-30 minutes.
+
 This problem is an extremely challenging **optimization task**:
 
 * The search space is vast
@@ -72,6 +74,7 @@ class Potential:
 ```
 
 See [`examples`](./examples/README.md) for both human-designed and AI-discovered potentials.
+The staged `n=7` Codex search example also documents the exact reproduction command and search-family settings.
 
 ---
 
