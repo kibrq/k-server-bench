@@ -1,0 +1,38 @@
+{
+  "spec": {
+    "n_outer": 4,
+    "stages": [
+      {
+        "n_inner": 0,
+        "row": [[false, 1], [false, 2], [false, 3], [false, 4]],
+        "penalty_pairs": []
+      },
+      {
+        "n_inner": 1,
+        "row": [[true, 1], [false, 2], [false, 3], [false, 4]],
+        "penalty_pairs": [[[true, 1], [false, 1], -1.0]],
+        "inner_multiset": true
+      },
+      {
+        "n_inner": 2,
+        "row": [[true, 1], [true, 2], [false, 3], [false, 4]],
+        "penalty_pairs": [[[true, 1], [false, 2], -1.0], [[true, 2], [false, 2], -1.0]],
+        "inner_multiset": true
+      },
+      {
+        "n_inner": 3,
+        "row": [[true, 1], [true, 2], [true, 3], [false, 4]],
+        "penalty_pairs": [[[true, 1], [false, 3], -1.0], [[true, 2], [false, 3], -1.0], [[true, 3], [false, 3], -1.0]],
+        "inner_multiset": true
+      },
+      {
+        "n_inner": 4,
+        "row": [[true, 1], [true, 2], [true, 3], [true, 4]],
+        "penalty_pairs": [[[true, 1], [false, 4], -1.0], [[true, 2], [false, 4], -1.0], [[true, 3], [false, 4], -1.0], [[true, 4], [false, 4], -1.0]],
+        "inner_multiset": true
+      }
+    ],
+    "constant": 0.0,
+    "outer_distance_coefs": []
+  }
+}

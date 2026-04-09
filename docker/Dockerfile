@@ -45,6 +45,7 @@ RUN cd /home/kserver/k-server-bench/k-servers \
 COPY --chown=kserver:kserver metrics /home/kserver/k-server-bench/metrics
 COPY --chown=kserver:kserver tasks /home/kserver/k-server-bench/tasks
 COPY --chown=kserver:kserver tools /home/kserver/k-server-bench/tools
+COPY --chown=kserver:kserver examples /home/kserver/k-server-bench/examples
 
 WORKDIR /home/kserver/workspace
 

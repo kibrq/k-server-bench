@@ -7,8 +7,18 @@ from typing import Iterable
 import numpy as np
 
 
-Ref = int
+Ref = tuple[bool, int]
 PenaltyPair = tuple[Ref, Ref, float]
+
+
+def outer_ref(index: int) -> tuple[bool, int]:
+    assert index != 0, "outer refs use nonzero 1-based indices"
+    return (False, index)
+
+
+def inner_ref(index: int) -> tuple[bool, int]:
+    assert index != 0, "inner refs use nonzero 1-based indices"
+    return (True, index)
 
 
 @dataclass(frozen=True)
@@ -27,11 +37,46 @@ class ParametrizedEvaderSpec:
     outer_distance_coefs: tuple[float, ...] = tuple()
 
 
+def _coerce_ref(value) -> Ref:
+    assert isinstance(value, (list, tuple)) and len(value) == 2, (
+        "refs must decode to [is_inner, index] pairs"
+    )
+    is_inner, index = value
+    return (bool(is_inner), int(index))
+
+
+def _coerce_stage_spec(value) -> StageSpec:
+    if isinstance(value, StageSpec):
+        return value
+    assert isinstance(value, dict), "stages must decode to StageSpec objects or dicts"
+    return StageSpec(
+        n_inner=int(value["n_inner"]),
+        row=tuple(_coerce_ref(ref) for ref in value["row"]),
+        penalty_pairs=tuple(
+            (_coerce_ref(left), _coerce_ref(right), float(coef))
+            for left, right, coef in value.get("penalty_pairs", ())
+        ),
+        inner_multiset=bool(value.get("inner_multiset", True)),
+    )
+
+
+def _coerce_spec(value) -> ParametrizedEvaderSpec:
+    if isinstance(value, ParametrizedEvaderSpec):
+        return value
+    assert isinstance(value, dict), "spec must decode to a ParametrizedEvaderSpec or dict"
+    return ParametrizedEvaderSpec(
+        n_outer=int(value["n_outer"]),
+        stages=tuple(_coerce_stage_spec(stage) for stage in value["stages"]),
+        constant=float(value.get("constant", 0.0)),
+        outer_distance_coefs=tuple(float(x) for x in value.get("outer_distance_coefs", ())),
+    )
+
+
 def reduced_evader_spec(k: int) -> ParametrizedEvaderSpec:
     stages: list[StageSpec] = [
         StageSpec(
             n_inner=0,
-            row=tuple(range(1, k + 1)),
+            row=tuple(outer_ref(i) for i in range(1, k + 1)),
             penalty_pairs=tuple(),
         )
     ]
@@ -39,8 +84,13 @@ def reduced_evader_spec(k: int) -> ParametrizedEvaderSpec:
         stages.append(
             StageSpec(
                 n_inner=t,
-                row=tuple([-i for i in range(1, t + 1)] + list(range(t + 1, k + 1))),
-                penalty_pairs=tuple((-i, t, -1.0) for i in range(1, t + 1)),
+                row=tuple(
+                    [inner_ref(i) for i in range(1, t + 1)]
+                    + [outer_ref(i) for i in range(t + 1, k + 1)]
+                ),
+                penalty_pairs=tuple(
+                    (inner_ref(i), outer_ref(t), -1.0) for i in range(1, t + 1)
+                ),
                 inner_multiset=True,
             )
         )
@@ -61,10 +111,41 @@ def _enumerate_assignments(
     return tuple(product(support, repeat=arity))
 
 
-def _resolve_ref(ref: Ref, outer: tuple[int, ...], inner: tuple[int, ...]) -> int:
-    if ref > 0:
-        return outer[ref - 1]
-    return inner[-ref - 1]
+def _normalize_ref(ref: Ref) -> tuple[bool, int]:
+    assert isinstance(ref, tuple) and len(ref) == 2, (
+        "refs must be tuples of the form (is_inner, index)"
+    )
+    is_inner, index = ref
+    assert isinstance(is_inner, bool), "refs must use a bool is_inner flag"
+    assert isinstance(index, int), "refs must use an integer index"
+    assert index != 0, "refs use nonzero 1-based indices"
+    return is_inner, index
+
+
+def _validate_ref(ref: Ref, *, n_outer: int, n_inner: int, label: str) -> None:
+    is_inner, index = _normalize_ref(ref)
+    abs_index = abs(index)
+    if is_inner:
+        assert abs_index <= n_inner, f"{label} inner reference out of range"
+    else:
+        assert abs_index <= n_outer, f"{label} outer reference out of range"
+
+
+def _resolve_ref(ref: Ref, outer: tuple[int, ...], inner: tuple[int, ...], *, modulus: int) -> int:
+    is_inner, index = _normalize_ref(ref)
+    ref_idx = abs(index) - 1
+    if is_inner:
+        point = inner[ref_idx]
+    else:
+        point = outer[ref_idx]
+    if index < 0:
+        return _antipode_point(point, modulus=modulus)
+    return point
+
+
+def _antipode_point(point: int, *, modulus: int) -> int:
+    assert modulus % 2 == 0, "antipode support requires an even-size point set"
+    return (point + modulus // 2) % modulus
 
 
 class Potential:
@@ -102,14 +183,16 @@ class Potential:
 
     def _build_spec(self, context, kwargs) -> ParametrizedEvaderSpec:
         if "spec" in kwargs:
-            return kwargs["spec"]
+            return _coerce_spec(kwargs["spec"])
 
         if {"n_outer", "stages"} <= set(kwargs):
             return ParametrizedEvaderSpec(
                 n_outer=int(kwargs["n_outer"]),
-                stages=tuple(kwargs["stages"]),
+                stages=tuple(_coerce_stage_spec(stage) for stage in kwargs["stages"]),
                 constant=float(kwargs.get("constant", 0.0)),
-                outer_distance_coefs=tuple(kwargs.get("outer_distance_coefs", tuple())),
+                outer_distance_coefs=tuple(
+                    float(x) for x in kwargs.get("outer_distance_coefs", tuple())
+                ),
             )
 
         return reduced_evader_spec(context.k)
@@ -124,21 +207,25 @@ class Potential:
         for stage in self.spec.stages:
             assert len(stage.row) == self.k, "every stage row must have length k"
             for ref in stage.row:
-                assert ref != 0, "row references are 1-based for outer and negative for inner"
-                if ref > 0:
-                    assert ref <= self.spec.n_outer, "outer reference out of range"
-                else:
-                    assert -ref <= stage.n_inner, "inner reference out of range"
+                _validate_ref(
+                    ref,
+                    n_outer=self.spec.n_outer,
+                    n_inner=stage.n_inner,
+                    label="row",
+                )
             for left_ref, right_ref, _coef in stage.penalty_pairs:
-                assert left_ref != 0 and right_ref != 0, "penalty references cannot be zero"
-                if left_ref > 0:
-                    assert left_ref <= self.spec.n_outer, "left outer reference out of range"
-                else:
-                    assert -left_ref <= stage.n_inner, "left inner reference out of range"
-                if right_ref > 0:
-                    assert right_ref <= self.spec.n_outer, "right outer reference out of range"
-                else:
-                    assert -right_ref <= stage.n_inner, "right inner reference out of range"
+                _validate_ref(
+                    left_ref,
+                    n_outer=self.spec.n_outer,
+                    n_inner=stage.n_inner,
+                    label="left penalty",
+                )
+                _validate_ref(
+                    right_ref,
+                    n_outer=self.spec.n_outer,
+                    n_inner=stage.n_inner,
+                    label="right penalty",
+                )
 
     def _compile(self) -> None:
         for stage in self.spec.stages:
@@ -158,13 +245,31 @@ class Potential:
             for outer_idx, outer in enumerate(self.outer_assignments):
                 for inner_idx, inner in enumerate(inner_assignments):
                     cfg = tuple(
-                        sorted(_resolve_ref(ref, outer, inner) for ref in stage.row)
+                        sorted(
+                            _resolve_ref(
+                                ref,
+                                outer,
+                                inner,
+                                modulus=self.context.m,
+                            )
+                            for ref in stage.row
+                        )
                     )
                     config_idxes[inner_idx, outer_idx] = self.context.config_to_idx(cfg)
                     penalty = 0.0
                     for left_ref, right_ref, coef in stage.penalty_pairs:
-                        left = _resolve_ref(left_ref, outer, inner)
-                        right = _resolve_ref(right_ref, outer, inner)
+                        left = _resolve_ref(
+                            left_ref,
+                            outer,
+                            inner,
+                            modulus=self.context.m,
+                        )
+                        right = _resolve_ref(
+                            right_ref,
+                            outer,
+                            inner,
+                            modulus=self.context.m,
+                        )
                         penalty += coef * self.context.distance(left, right)
                     penalties[inner_idx, outer_idx] = penalty
             self.stage_config_idxes.append(np.ascontiguousarray(config_idxes))
