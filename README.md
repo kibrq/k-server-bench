@@ -1,5 +1,7 @@
 # k-server-bench
 
+Paper: [`k`-server-bench: Automating Potential Discovery for the `k`-Server Conjecture](https://arxiv.org/abs/2604.07240)
+
 This project aims to **automate and accelerate progress** toward the [k-server conjecture](https://en.wikipedia.org/wiki/K-server_problem), a central open problem in competitive analysis, using **open-ended AI-driven discovery**.
 
 The core task is to discover a **potential function** that satisfies a large, graph-structured system of linear inequalities. The evaluation procedure is **sound but incomplete**:
@@ -11,7 +13,7 @@ Nevertheless, a candidate that satisfies all constraints would provide strong ev
 
 As such, a successful candidate would already represent a meaningful contribution—and could potentially lead to a full theoretical result when paired with a formal proof.
 
-For additional mathematical background, see the documentation under [`docs/`](./docs/README.md). A paper link can be added here once the public version is finalized.
+For additional mathematical background, see the documentation under [`docs/`](./docs/README.md). For the benchmark paper, see [`k`-server-bench: Automating Potential Discovery for the `k`-Server Conjecture](https://arxiv.org/abs/2604.07240).
 
 ---
 
@@ -328,3 +330,18 @@ Start here:
 * [`tests/`](./tests/README.md): basic validation tests
 * [`agents/`](./agents/README.md): agent integrations
 * [`docker/`](./docker/README.md): reproducible environments
+
+---
+
+## Citation
+
+```bibtex
+@article{brilliantov2026kserverbench,
+  title={k-server-bench: Automating Potential Discovery for the k-Server Conjecture},
+  author={Brilliantov, Kirill and Bamas, Etienne and Abbe, Emmanuel},
+  journal={arXiv preprint arXiv:2604.07240},
+  year={2026},
+  doi={10.48550/arXiv.2604.07240},
+  url={https://arxiv.org/abs/2604.07240}
+}
+```
