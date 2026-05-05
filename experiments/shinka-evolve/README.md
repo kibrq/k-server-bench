@@ -2,7 +2,10 @@
 
 This method root runs the released shinka-evolve workflow.
 
-The released experiments here were run against a local fork of `ShinkaEvolve` rather than the upstream project.
+The released experiments here were run against an anonymous fork of `ShinkaEvolve` rather than the upstream project:
+
+- <https://anonymous.4open.science/r/ShinkaEvolve-C43D>
+
 Because of that, interface details and empirical results may differ if you point these sweeps at upstream `ShinkaEvolve`.
 
 Key files:
