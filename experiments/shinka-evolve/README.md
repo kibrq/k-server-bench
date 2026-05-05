@@ -2,10 +2,7 @@
 
 This method root runs the released shinka-evolve workflow.
 
-The released experiments here were run against a forked `ShinkaEvolve` codebase rather than the upstream project:
-
-- <https://github.com/kibrq/ShinkaEvolve>
-
+The released experiments here were run against a local fork of `ShinkaEvolve` rather than the upstream project.
 Because of that, interface details and empirical results may differ if you point these sweeps at upstream `ShinkaEvolve`.
 
 Key files:

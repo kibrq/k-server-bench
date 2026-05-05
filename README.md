@@ -1,6 +1,6 @@
 # k-server-bench
 
-Paper: [`k`-server-bench: Automating Potential Discovery for the `k`-Server Conjecture](https://arxiv.org/abs/2604.07240)
+Anonymous release for conference submission.
 
 This project aims to **automate and accelerate progress** toward the [k-server conjecture](https://en.wikipedia.org/wiki/K-server_problem), a central open problem in competitive analysis, using **open-ended AI-driven discovery**.
 
@@ -13,7 +13,7 @@ Nevertheless, a candidate that satisfies all constraints would provide strong ev
 
 As such, a successful candidate would already represent a meaningful contribution—and could potentially lead to a full theoretical result when paired with a formal proof.
 
-For additional mathematical background, see the documentation under [`docs/`](./docs/README.md). For the benchmark paper, see [`k`-server-bench: Automating Potential Discovery for the `k`-Server Conjecture](https://arxiv.org/abs/2604.07240).
+For additional mathematical background, see the documentation under [`docs/`](./docs/README.md).
 
 ---
 
@@ -190,7 +190,7 @@ bash agents/codex/setup.sh <target-dir>
 
 For additional details (including split-environment setups), see [`agents/codex/README.md`](./agents/codex/README.md).
 
-We also provide an additional [`autoresearch`](https://github.com/karpathy/autoresearch) layering that can be applied on top of an existing workspace setup. It adds an `AGENTS.md` file plus an `autoresearch`-style `program.md`.
+We also provide an additional `autoresearch` layering that can be applied on top of an existing workspace setup. It adds an `AGENTS.md` file plus an `autoresearch`-style `program.md`.
 
 ```bash
 bash agents/autoresearch/setup.sh <target-dir>
@@ -335,13 +335,4 @@ Start here:
 
 ## Citation
 
-```bibtex
-@article{brilliantov2026kserverbench,
-  title={k-server-bench: Automating Potential Discovery for the k-Server Conjecture},
-  author={Brilliantov, Kirill and Bamas, Etienne and Abbe, Emmanuel},
-  journal={arXiv preprint arXiv:2604.07240},
-  year={2026},
-  doi={10.48550/arXiv.2604.07240},
-  url={https://arxiv.org/abs/2604.07240}
-}
-```
+Citation information is intentionally omitted from this anonymous release.
