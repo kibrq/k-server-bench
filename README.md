@@ -129,6 +129,10 @@ git lfs pull
 
 Without Git LFS, the files in [`metrics/`](./metrics/README.md) will not be downloaded correctly, and the evaluator will not function.
 
+For anonymous-review distribution, a bundled metrics archive is also available on Figshare:
+
+* https://figshare.com/s/8ef50b29231d34e7cf9f
+
 ---
 
 ### Installation
